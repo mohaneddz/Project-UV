@@ -1,0 +1,23 @@
+# UV Prediction Models - Requirements
+
+# Core dependencies
+pandas>=1.5.0
+numpy>=1.23.0
+matplotlib>=3.5.0
+scikit-learn>=1.2.0
+
+# Time series models
+statsmodels>=0.14.0
+
+# Machine Learning (optional but recommended)
+xgboost>=1.7.0
+lightgbm>=3.3.0
+
+# Deep Learning (optional)
+tensorflow>=2.10.0
+
+# Boosting models (optional)
+catboost>=1.2.0
+
+# Utilities
+scipy>=1.9.0

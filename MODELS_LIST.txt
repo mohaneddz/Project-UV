@@ -1,0 +1,109 @@
+"""
+UV PREDICTION MODELS - LIST OF ALL AVAILABLE MODELS
+====================================================
+
+TIME SERIES MODELS (ts.py)
+---------------------------
+1. SARIMA - Seasonal AutoRegressive Integrated Moving Average
+   - Best for: Data with seasonal patterns and trends
+   - Parameters: order=(1,1,1), seasonal_order=(1,1,1,7)
+
+2. ARIMA - AutoRegressive Integrated Moving Average
+   - Best for: Non-seasonal time series data
+   - Parameters: order=(1,1,1)
+
+3. ETS - Exponential Smoothing (Holt-Winters)
+   - Best for: Data with trend and seasonality
+   - Parameters: seasonal='add', seasonal_periods=7
+
+4. NAIVE - Naive Forecast
+   - Best for: Baseline comparison
+   - Simple last-value persistence
+
+5. SEASONAL_NAIVE - Seasonal Naive Forecast
+   - Best for: Seasonal baseline
+   - Uses last seasonal values
+
+
+MACHINE LEARNING MODELS (ml.py)
+--------------------------------
+1. RANDOM_FOREST - Random Forest Regressor
+   - Best for: Non-linear relationships, feature importance
+   - Parameters: n_estimators=100, max_depth=10
+
+2. XGBOOST - XGBoost Regressor (requires: pip install xgboost)
+   - Best for: High performance, handles missing data
+   - Parameters: n_estimators=100, max_depth=6, learning_rate=0.1
+
+3. LIGHTGBM - LightGBM Regressor (requires: pip install lightgbm)
+   - Best for: Fast training, large datasets
+   - Parameters: n_estimators=100, learning_rate=0.1
+
+4. LINEAR_REGRESSION - Linear Regression
+   - Best for: Linear relationships, interpretability
+   - Simple and fast
+
+5. RIDGE - Ridge Regression (L2 regularization)
+   - Best for: Preventing overfitting with linear models
+   - Parameters: alpha=1.0
+
+6. LASSO - Lasso Regression (L1 regularization)
+   - Best for: Feature selection, sparse models
+   - Parameters: alpha=1.0
+
+7. SVR - Support Vector Regressor
+   - Best for: Small datasets, non-linear patterns
+   - Parameters: kernel='rbf', C=1.0
+
+
+DEEP LEARNING MODELS (dl.py)
+-----------------------------
+Requires: pip install tensorflow
+
+1. LSTM - Long Short-Term Memory
+   - Best for: Sequential patterns, long-term dependencies
+   - Parameters: units=50, dropout=0.2, lookback=30
+
+2. GRU - Gated Recurrent Unit
+   - Best for: Faster than LSTM, similar performance
+   - Parameters: units=50, dropout=0.2, lookback=30
+
+3. BILSTM - Bidirectional LSTM
+   - Best for: Capturing past and future context
+   - Parameters: units=50, dropout=0.2, lookback=30
+
+4. DEEP_LSTM - Multi-layer LSTM
+   - Best for: Complex patterns, large datasets
+   - Parameters: units=50, dropout=0.2, lookback=30
+
+5. DEEP_GRU - Multi-layer GRU
+   - Best for: Complex patterns with faster training
+   - Parameters: units=50, dropout=0.2, lookback=30
+
+
+BOOSTING MODELS (boosters.py)
+------------------------------
+1. CATBOOST - CatBoost Regressor (requires: pip install catboost)
+   - Best for: Categorical features, minimal tuning
+   - Parameters: iterations=100, depth=6, learning_rate=0.1
+
+2. ADABOOST - Adaptive Boosting
+   - Best for: Ensemble of weak learners
+   - Parameters: n_estimators=50, learning_rate=1.0
+
+3. GRADIENT_BOOSTING - Gradient Boosting Regressor
+   - Best for: Strong performance, interpretability
+   - Parameters: n_estimators=100, max_depth=3, learning_rate=0.1
+
+
+TOTAL MODELS: 20+
+=================
+
+RECOMMENDED COMBINATIONS FOR COMPARISON:
+----------------------------------------
+- Quick Test: NAIVE, LINEAR_REGRESSION, LSTM
+- Best Performance: SARIMA, XGBOOST, BILSTM, CATBOOST
+- Interpretable: ARIMA, RANDOM_FOREST, LINEAR_REGRESSION
+- Production Ready: SARIMA, LIGHTGBM, GRU
+- Research/Academic: All models for comprehensive comparison
+"""
