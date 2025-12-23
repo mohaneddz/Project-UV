@@ -11,7 +11,7 @@ For manual SARIMA training, use:
     import ts
     import plot
     
-    train_df, test_df, full_df = preprocess.full_pipeline('data/UV-Tunisia.csv')
+    train_df, test_df, full_df = preprocess.full_pipeline('data/UV-ALGERIA.csv')
     metrics_df, predictions_dict = ts.train_and_evaluate(train_df, test_df, 'SARIMA')
     plot.save_all_plots('SARIMA', predictions_dict, metrics_df)
 """
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     print("Training SARIMA model using new modular structure...\n")
     
     # Load data
-    train_df, test_df, full_df = preprocess.full_pipeline('data/UV-Tunisia.csv')
+    train_df, test_df, full_df = preprocess.full_pipeline('data/UV-ALGERIA.csv')
     
     # Train SARIMA
     metrics_df, predictions_dict = ts.train_and_evaluate(

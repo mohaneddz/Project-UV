@@ -4,18 +4,38 @@ import pandas as pd
 import numpy as np
 
 
-def load_data(filepath, date_col='YYYYMMDD', date_format='%Y%m%d'):
+def load_data(filepath, date_col=None, date_format=None):
     """Load CSV data and convert date column to datetime index.
     
     Args:
         filepath: Path to CSV file
-        date_col: Name of date column
-        date_format: Date format string
+        date_col: Name of date column (auto-detected if None)
+        date_format: Date format string (auto-detected if None)
         
     Returns:
         DataFrame with datetime index
     """
     df = pd.read_csv(filepath, dtype=str)
+    
+    # Auto-detect date column and format
+    if date_col is None:
+        if 'Date' in df.columns:
+            date_col = 'Date'
+            date_format = '%Y-%m-%d'
+        elif 'YYYYMMDD' in df.columns:
+            date_col = 'YYYYMMDD'
+            date_format = '%Y%m%d'
+        else:
+            raise ValueError("Could not detect date column. Expected 'Date' or 'YYYYMMDD'.")
+    
+    if date_format is None:
+        if date_col == 'Date':
+            date_format = '%Y-%m-%d'
+        elif date_col == 'YYYYMMDD':
+            date_format = '%Y%m%d'
+        else:
+            raise ValueError(f"Unknown date column '{date_col}'. Provide date_format.")
+    
     df[date_col] = pd.to_datetime(df[date_col], format=date_format)
     df.set_index(date_col, inplace=True)
     return df

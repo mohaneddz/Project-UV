@@ -4,7 +4,7 @@ import numpy as np
 
 # --- Data Loading and Cleaning ---
 # Note: You need to replace the placeholder path with your actual file path
-file_path = "data/UV-Tunisia.csv" # Update this if you run the file outside the current directory
+file_path = "data/UV-ALGERIA.csv" # Update this if you run the file outside the current directory
 try:
     data = pd.read_csv(
         file_path,
@@ -17,29 +17,27 @@ except FileNotFoundError:
 # Strip whitespace from all string columns
 data = data.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
 
-# Replace invalid/missing values ('-1.000') with NaN
-data.replace({'-1.000': np.nan, '': np.nan}, inplace=True)
+# Replace invalid/missing values with NaN (new data uses empty strings)
+data.replace({'': np.nan}, inplace=True)
 
-# Keep only rows with valid numeric dates and convert date column
-data = data[data['YYYYMMDD'].astype(str).str.isnumeric()]
-data['YYYYMMDD'] = pd.to_datetime(data['YYYYMMDD'], format='%Y%m%d', errors='coerce')
-data = data.dropna(subset=['YYYYMMDD'])
+# Keep only rows with valid dates and convert date column
+data['Date'] = pd.to_datetime(data['Date'], format='%Y-%m-%d', errors='coerce')
+data = data.dropna(subset=['Date'])
+data.set_index('Date', inplace=True)
 
 # --- Data Preparation for Plotting (Focusing on Key Variables) ---
 
 # Define the two key variables for the plot
-KEY_UV_COL = 'UVIEF'      # UV Index, Erythemal, Flat (The most common UV index)
-KEY_ERR_COL = 'UVIEFerr'  # Error for the UV Index
-OZONE_COL = 'ozone'       # Ozone column
+KEY_UV_COL = 'ALLSKY_SFC_UV_INDEX'  # UV Index from NASA POWER
+OZONE_COL = 'TO3'                   # Total Column Ozone
 
 # Convert selected columns to numeric, coercing errors to NaN
-for col in [KEY_UV_COL, KEY_ERR_COL, OZONE_COL]:
+for col in [KEY_UV_COL, OZONE_COL]:
     data[col] = pd.to_numeric(data[col], errors='coerce')
 
 # Crucial step: Interpolate missing values (NaNs) for a continuous time series plot.
 # We use linear interpolation here for a smoother visualization of trends.
 data[KEY_UV_COL] = data[KEY_UV_COL].interpolate(method='linear')
-data[KEY_ERR_COL] = data[KEY_ERR_COL].interpolate(method='linear')
 data[OZONE_COL] = data[OZONE_COL].interpolate(method='linear')
 
 # Remove any remaining rows where the primary UV or Ozone data is still NaN after interpolation
@@ -47,16 +45,16 @@ data[OZONE_COL] = data[OZONE_COL].interpolate(method='linear')
 data = data.dropna(subset=[KEY_UV_COL, OZONE_COL])
 
 # Add year column for filtering
-data['Year'] = data['YYYYMMDD'].dt.year
+data['Year'] = data.index.year
 
 # --- Plotting ---
 
 # Use a clean, professional style for better aesthetics
 plt.style.use('seaborn-v0_8-whitegrid')
 
-# Generate 10 plots, each for 2 years (assuming start from 2002)
+# Generate 10 plots, each for 2 years (starting from 1981)
 for i in range(10):
-    start_year = 2002 + i * 2
+    start_year = 1981 + i * 2
     end_year = start_year + 1
     subset = data[(data['Year'] >= start_year) & (data['Year'] <= end_year)]
     
@@ -68,18 +66,16 @@ for i in range(10):
     # Primary Axis (ax1) for UV Index
     color_uv = '#1f77b4'  # Blue
     ax1.set_xlabel('Date')
-    ax1.set_ylabel('UV Index (UVIEF)', color=color_uv)
+    ax1.set_ylabel('UV Index (ALLSKY_SFC_UV_INDEX)', color=color_uv)
     
-    # Plot UV index with error bars
-    ax1.errorbar(
-        subset['YYYYMMDD'],
+    # Plot UV index
+    ax1.plot(
+        subset.index,
         subset[KEY_UV_COL],
-        yerr=subset[KEY_ERR_COL],
-        fmt='o',            # Use small circle markers
+        marker='o',            # Use small circle markers
         linestyle='-',      # Connect the markers
         color=color_uv,
-        label='UV Index (UVIEF)',
-        capsize=3,          # Cap line for error bars
+        label='UV Index (ALLSKY_SFC_UV_INDEX)',
         linewidth=1.5,
         markersize=3,
         alpha=0.7
@@ -102,5 +98,5 @@ for i in range(10):
     plt.close()
 
 print("\n--- Summary ---")
-print("Generated 10 plots, each for a 2-year period, focusing on UV Index with error bars.")
+print("Generated 10 plots, each for a 2-year period, focusing on UV Index.")
 print("NaNs were handled using linear interpolation for a continuous line.")

@@ -125,7 +125,7 @@ python main.py
 ### `preprocess.py`
 ```python
 # Load data
-train_df, test_df, full_df = preprocess.full_pipeline('data/UV-Tunisia.csv')
+train_df, test_df, full_df = preprocess.full_pipeline('data/UV-Algeria.csv')
 
 # Create features for ML
 X_train, X_test, y_train, y_test, features = preprocess.prepare_for_ml(

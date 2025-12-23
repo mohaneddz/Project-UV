@@ -56,7 +56,7 @@ import ts
 import plot
 
 # Load data
-train_df, test_df, full_df = preprocess.full_pipeline('data/UV-Tunisia.csv')
+train_df, test_df, full_df = preprocess.full_pipeline('data/UV-Algeria.csv')
 
 # Train SARIMA
 metrics_df, predictions_dict = ts.train_and_evaluate(train_df, test_df, 'SARIMA')
@@ -72,7 +72,7 @@ import ml
 import plot
 
 # Load data
-train_df, test_df, full_df = preprocess.full_pipeline('data/UV-Tunisia.csv')
+train_df, test_df, full_df = preprocess.full_pipeline('data/UV-Algeria.csv')
 
 # Prepare features
 target_cols = train_df.columns.tolist()
@@ -96,7 +96,7 @@ import dl
 import plot
 
 # Load data
-train_df, test_df, full_df = preprocess.full_pipeline('data/UV-Tunisia.csv')
+train_df, test_df, full_df = preprocess.full_pipeline('data/UV-Algeria.csv')
 
 # Train
 metrics_df, predictions_dict, model, history = dl.train_and_evaluate(
@@ -153,7 +153,7 @@ Project UV/
 - Deep Learning models require TensorFlow. Install with `pip install tensorflow` or skip DL models.
 
 ### "Data file not found"
-- Make sure `data/UV-Tunisia.csv` exists
+- Make sure `data/UV-Algeria.csv` exists
 - Check the file was moved correctly from root
 
 ### Out of Memory

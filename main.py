@@ -124,12 +124,25 @@ def load_data(filepath):
     
     train_df, test_df, full_df = preprocess.full_pipeline(filepath)
     
+    # Detect target columns based on data format
+    if 'ALLSKY_SFC_UV_INDEX' in full_df.columns:
+        target_cols = ['ALLSKY_SFC_UV_INDEX', 'TO3']
+    elif 'UVIEF' in full_df.columns:
+        target_cols = ['UVIEF', 'ozone']
+    else:
+        target_cols = full_df.columns.tolist()  # Fallback to all
+    
+    # Filter to target columns
+    full_df = full_df[target_cols]
+    train_df = train_df[target_cols]
+    test_df = test_df[target_cols]
+    
     print(f"\nData loaded successfully!")
     print(f"Full dataset: {len(full_df)} samples")
     print(f"Training set: {len(train_df)} samples")
     print(f"Test set: {len(test_df)} samples")
-    print(f"Variables: {len(full_df.columns)}")
-    print(f"Columns: {', '.join(full_df.columns.tolist()[:5])}...")
+    print(f"Target variables: {len(target_cols)}")
+    print(f"Columns: {', '.join(target_cols)}")
     
     return train_df, test_df, full_df
 
@@ -500,7 +513,7 @@ def main():
     print_header()
     
     # Load data
-    data_path = 'data/UV-Tunisia.csv'
+    data_path = 'data/UV-Algeria.csv'
     train_df, test_df, full_df = load_data(data_path)
     
     # Ensure output directories exist
