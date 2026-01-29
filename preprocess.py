@@ -38,6 +38,14 @@ def load_data(filepath, date_col=None, date_format=None):
     
     df[date_col] = pd.to_datetime(df[date_col], format=date_format)
     df.set_index(date_col, inplace=True)
+    df = df.sort_index()
+
+    # If the frequency can be inferred, regularize the index so time-series models
+    # see a consistent spacing (missing dates become NaN for later interpolation).
+    inferred_freq = pd.infer_freq(df.index)
+    if inferred_freq:
+        df = df.asfreq(inferred_freq)
+
     return df
 
 
@@ -158,6 +166,9 @@ def split_train_test(df, test_days=30):
     Returns:
         Tuple of (train_df, test_df)
     """
+    if test_days >= len(df):
+        test_days = max(1, len(df) - 1)
+
     train_size = len(df) - test_days
     train_df = df.iloc[:train_size]
     test_df = df.iloc[train_size:]
@@ -181,6 +192,7 @@ def prepare_for_ml(df, target_cols, feature_cols=None, test_days=30):
     df_features = create_time_features(df)
     df_features = create_lag_features(df_features, target_cols, lags=[1, 7, 14])
     df_features = create_rolling_features(df_features, target_cols, windows=[7, 14])
+    df_features = df_features.sort_index()
     
     # Drop rows with NaN (from lag/rolling)
     df_features = df_features.dropna()

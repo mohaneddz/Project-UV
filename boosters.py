@@ -375,7 +375,7 @@ def train_and_evaluate(X_train, X_test, y_train, y_test, model_type='CATBOOST',
         
         for i, col in enumerate(target_cols):
             predictions_dict[col] = {
-                'train': pd.Series([]),  # Boosting models don't need train series for viz
+                'train': pd.Series(dtype=float),  # Boosting models don't need train series for viz
                 'test': test_df[col],
                 'forecast': y_pred[:, i]
             }
@@ -427,12 +427,12 @@ def get_default_params(model_type):
         Dict of default parameters
     """
     defaults = {
-        'CATBOOST': {'iterations': 100, 'depth': 6, 'learning_rate': 0.1, 'verbose': False},
-        'XGBOOST': {'n_estimators': 100, 'max_depth': 6, 'learning_rate': 0.1, 'random_state': 42},
-        'ADABOOST': {'n_estimators': 50, 'learning_rate': 1.0, 'random_state': 42},
-        'GRADIENT_BOOSTING': {'n_estimators': 100, 'max_depth': 3, 'learning_rate': 0.1, 'random_state': 42},
-        'HIST_GRADIENT_BOOSTING': {'max_iter': 100, 'max_depth': None, 'learning_rate': 0.1, 'random_state': 42},
-        'EXTRA_TREES': {'n_estimators': 100, 'max_depth': None, 'min_samples_split': 2, 'random_state': 42}
+        'CATBOOST': {'iterations': 300, 'depth': 6, 'learning_rate': 0.05, 'verbose': False},
+        'XGBOOST': {'n_estimators': 300, 'max_depth': 6, 'learning_rate': 0.05, 'random_state': 42},
+        'ADABOOST': {'n_estimators': 200, 'learning_rate': 0.1, 'random_state': 42},
+        'GRADIENT_BOOSTING': {'n_estimators': 300, 'max_depth': 3, 'learning_rate': 0.05, 'random_state': 42},
+        'HIST_GRADIENT_BOOSTING': {'max_iter': 300, 'max_depth': None, 'learning_rate': 0.05, 'random_state': 42},
+        'EXTRA_TREES': {'n_estimators': 300, 'max_depth': None, 'min_samples_split': 2, 'random_state': 42}
     }
     return defaults.get(model_type, {})
 
