@@ -33,7 +33,7 @@ if GARCH_AVAILABLE:
     MODELS.append('GARCH')
 
 
-def train_sarima(train, order=(1, 1, 1), seasonal_order=(1, 1, 1, 7)):
+def train_sarima(train, order=(1, 1, 1), seasonal_order=(1, 1, 1, 7), maxiter=200):
     """Train SARIMA model.
     
     Args:
@@ -49,21 +49,79 @@ def train_sarima(train, order=(1, 1, 1), seasonal_order=(1, 1, 1, 7)):
                     seasonal_order=seasonal_order,
                     enforce_stationarity=False,
                     enforce_invertibility=False)
-    return model.fit(disp=False)
+    return model.fit(disp=False, maxiter=maxiter)
 
 
-def train_arima(train, order=(1, 1, 1)):
+def train_arima(train, order=(1, 1, 1), auto=True, use_seasonal=False):
     """Train ARIMA model.
     
     Args:
         train: Training series
-        order: ARIMA order (p, d, q)
+        order: ARIMA order (p, d, q) - used if auto=False
+        auto: If True, tries to find better parameters automatically
+        use_seasonal: If True, uses SARIMA with seasonal terms for UV data
         
     Returns:
         Fitted model
     """
-    model = ARIMA(train, order=order)
-    return model.fit()
+    if use_seasonal:
+        # For UV data which has strong seasonality, use SARIMA instead
+        # UV data typically has yearly seasonality (365 days)
+        # But we'll use weekly (7) and monthly (30) approximations to avoid overfitting
+        seasonal_orders_to_try = [
+            (1, 1, 1, 365),  # Yearly
+            (1, 1, 1, 30),   # Monthly  
+            (1, 1, 1, 7),    # Weekly
+        ]
+        
+        best_aic = float('inf')
+        best_model = None
+        
+        for seasonal_order in seasonal_orders_to_try:
+            try:
+                model = SARIMAX(train, order=(1,1,1), seasonal_order=seasonal_order,
+                               enforce_stationarity=False, enforce_invertibility=False)
+                fitted_model = model.fit(disp=False, maxiter=100)
+                if fitted_model.aic < best_aic:
+                    best_aic = fitted_model.aic
+                    best_model = fitted_model
+            except:
+                continue
+        
+        if best_model is not None:
+            return best_model
+    
+    if auto:
+        # Try different parameter combinations to find better fit
+        best_aic = float('inf')
+        best_model = None
+        
+        # Test various ARIMA orders
+        orders_to_try = [
+            (0, 1, 1), (1, 1, 0), (1, 1, 1), (2, 1, 1), (1, 1, 2),
+            (2, 1, 2), (3, 1, 1), (1, 1, 3), (0, 1, 2), (2, 1, 0),
+            (1, 0, 1), (2, 0, 1), (1, 0, 2)  # Some non-differenced options
+        ]
+        
+        for order_candidate in orders_to_try:
+            try:
+                model = ARIMA(train, order=order_candidate)
+                fitted_model = model.fit()
+                if fitted_model.aic < best_aic:
+                    best_aic = fitted_model.aic
+                    best_model = fitted_model
+            except:
+                continue
+        
+        if best_model is None:
+            # Fallback to basic model if all fail
+            model = ARIMA(train, order=order)
+            return model.fit()
+        
+        return best_model
+    else:
+        model = ARIMA(train, order=order)
+        return model.fit()
 
 
 def train_ets(train, seasonal='add', seasonal_periods=7):
@@ -199,7 +257,7 @@ def forecast_model(model, steps, model_type='SARIMA', train_data=None):
         raise ValueError(f"Unknown model type: {model_type}")
 
 
-def _infer_seasonal_period(index, min_cycles=2):
+def _infer_seasonal_period(index, min_cycles=2, max_seasonal_period=None):
     """Infer a reasonable seasonal period from a datetime index."""
     if index is None or len(index) == 0:
         return 1
@@ -224,6 +282,9 @@ def _infer_seasonal_period(index, min_cycles=2):
 
     if len(index) < season * min_cycles:
         season = 7 if len(index) >= 14 else 1
+
+    if max_seasonal_period is not None and season > max_seasonal_period:
+        season = max_seasonal_period
 
     return max(1, int(season))
 
@@ -292,7 +353,10 @@ def train_all_variables(train_df, test_df, model_type='SARIMA', model_params=Non
         try:
             seasonal_period = None
             if model_params.get('auto_seasonal', False):
-                seasonal_period = _infer_seasonal_period(train_df[col].index)
+                seasonal_period = _infer_seasonal_period(
+                    train_df[col].index,
+                    max_seasonal_period=model_params.get('max_seasonal_period')
+                )
 
             # Train model
             if model_type == 'SARIMA':
@@ -309,7 +373,8 @@ def train_all_variables(train_df, test_df, model_type='SARIMA', model_params=Non
                         seasonal_order = (1, 1, 1, seasonal_period)
                 model = train_sarima(train_df[col], 
                                     order=model_params.get('order', (1, 1, 1)),
-                                    seasonal_order=seasonal_order)
+                                    seasonal_order=seasonal_order,
+                                    maxiter=model_params.get('maxiter', 200))
             elif model_type == 'ARIMA':
                 order = model_params.get('order', (1, 1, 1))
                 if model_params.get('auto_arima', False):
@@ -326,6 +391,9 @@ def train_all_variables(train_df, test_df, model_type='SARIMA', model_params=Non
                     seasonal_period = model_params.get('seasonal_periods')
                     if seasonal_period is None:
                         seasonal_period = 7
+                max_seasonal = model_params.get('max_seasonal_period')
+                if max_seasonal is not None:
+                    seasonal_period = min(seasonal_period, max_seasonal)
                 seasonal = model_params.get('seasonal', 'add')
                 if seasonal_period < 2:
                     seasonal = None
@@ -348,6 +416,9 @@ def train_all_variables(train_df, test_df, model_type='SARIMA', model_params=Non
                     seasonal_period = model_params.get('season')
                     if seasonal_period is None:
                         seasonal_period = 7
+                max_seasonal = model_params.get('max_seasonal_period')
+                if max_seasonal is not None:
+                    seasonal_period = min(seasonal_period, max_seasonal)
                 model = train_seasonal_naive(train_df[col], 
                                             season=seasonal_period)
             else:
@@ -463,12 +534,12 @@ def get_default_params(model_type):
         Dict of default parameters
     """
     defaults = {
-        'SARIMA': {'order': (1, 1, 1), 'seasonal_order': None, 'auto_seasonal': True},
+        'SARIMA': {'order': (1, 1, 1), 'seasonal_order': None, 'auto_seasonal': True, 'max_seasonal_period': 30, 'maxiter': 200},
         'ARIMA': {'order': (1, 1, 1), 'auto_arima': True},
-        'ETS': {'seasonal': 'add', 'seasonal_periods': None, 'auto_seasonal': True},
+        'ETS': {'seasonal': 'add', 'seasonal_periods': None, 'auto_seasonal': True, 'max_seasonal_period': 30},
         'PROPHET': {'interval_width': 0.95, 'yearly_seasonality': True, 'weekly_seasonality': True},
         'GARCH': {'p': 1, 'q': 1},
         'NAIVE': {},
-        'SEASONAL_NAIVE': {'season': None, 'auto_seasonal': True}
+        'SEASONAL_NAIVE': {'season': None, 'auto_seasonal': True, 'max_seasonal_period': 30}
     }
     return defaults.get(model_type, {})
