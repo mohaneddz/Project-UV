@@ -123,6 +123,7 @@ def load_data(filepath):
         sys.exit(1)
     
     train_df, test_df, full_df = preprocess.full_pipeline(filepath)
+    full_df_all = full_df.copy()
     
     # Detect target columns based on data format
     if 'ALLSKY_SFC_UV_INDEX' in full_df.columns:
@@ -132,10 +133,12 @@ def load_data(filepath):
     else:
         target_cols = full_df.columns.tolist()  # Fallback to all
     
-    # Filter to target columns
-    full_df = full_df[target_cols]
+    # Filter targets for time-series / DL models only.
     train_df = train_df[target_cols]
     test_df = test_df[target_cols]
+
+    # Keep full feature set for ML/boosting models (includes targets + exogenous vars).
+    full_df = full_df_all
     
     print(f"\nData loaded successfully!")
     print(f"Full dataset: {len(full_df)} samples")

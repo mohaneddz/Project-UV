@@ -77,9 +77,12 @@ def train_ets(train, seasonal='add', seasonal_periods=7):
     Returns:
         Fitted model
     """
-    model = ExponentialSmoothing(train, 
-                                 seasonal=seasonal, 
-                                 seasonal_periods=seasonal_periods)
+    if seasonal is None:
+        model = ExponentialSmoothing(train, seasonal=None)
+    else:
+        model = ExponentialSmoothing(train, 
+                                     seasonal=seasonal, 
+                                     seasonal_periods=seasonal_periods)
     return model.fit()
 
 
@@ -196,6 +199,55 @@ def forecast_model(model, steps, model_type='SARIMA', train_data=None):
         raise ValueError(f"Unknown model type: {model_type}")
 
 
+def _infer_seasonal_period(index, min_cycles=2):
+    """Infer a reasonable seasonal period from a datetime index."""
+    if index is None or len(index) == 0:
+        return 1
+
+    freq = pd.infer_freq(index)
+    if not freq:
+        season = 7 if len(index) >= 14 else 1
+    else:
+        freq = freq.upper()
+        if freq.startswith('D') or freq == 'B':
+            season = 365
+        elif freq.startswith('W'):
+            season = 52
+        elif freq.startswith('M'):
+            season = 12
+        elif freq.startswith('Q'):
+            season = 4
+        elif freq.startswith('A') or freq.startswith('Y'):
+            season = 1
+        else:
+            season = 7
+
+    if len(index) < season * min_cycles:
+        season = 7 if len(index) >= 14 else 1
+
+    return max(1, int(season))
+
+
+def _select_arima_order(train, p_values=(0, 1, 2), d_values=(0, 1), q_values=(0, 1, 2)):
+    """Select ARIMA order by AIC over a small grid."""
+    best_order = (1, 1, 1)
+    best_aic = np.inf
+
+    for p in p_values:
+        for d in d_values:
+            for q in q_values:
+                try:
+                    model = ARIMA(train, order=(p, d, q))
+                    result = model.fit()
+                    if result.aic < best_aic:
+                        best_aic = result.aic
+                        best_order = (p, d, q)
+                except Exception:
+                    continue
+
+    return best_order
+
+
 def evaluate_forecast(actual, forecast):
     """Calculate evaluation metrics.
     
@@ -238,18 +290,48 @@ def train_all_variables(train_df, test_df, model_type='SARIMA', model_params=Non
         print(f"[{i+1}/{len(columns)}] Training {model_type} for {col}...")
         
         try:
+            seasonal_period = None
+            if model_params.get('auto_seasonal', False):
+                seasonal_period = _infer_seasonal_period(train_df[col].index)
+
             # Train model
             if model_type == 'SARIMA':
+                seasonal_order = model_params.get('seasonal_order')
+                if seasonal_period is None:
+                    if seasonal_order and len(seasonal_order) == 4:
+                        seasonal_period = seasonal_order[3]
+                    else:
+                        seasonal_period = 7
+                if seasonal_order is None:
+                    if seasonal_period < 2:
+                        seasonal_order = (0, 0, 0, 1)
+                    else:
+                        seasonal_order = (1, 1, 1, seasonal_period)
                 model = train_sarima(train_df[col], 
                                     order=model_params.get('order', (1, 1, 1)),
-                                    seasonal_order=model_params.get('seasonal_order', (1, 1, 1, 7)))
+                                    seasonal_order=seasonal_order)
             elif model_type == 'ARIMA':
+                order = model_params.get('order', (1, 1, 1))
+                if model_params.get('auto_arima', False):
+                    order = _select_arima_order(
+                        train_df[col],
+                        p_values=model_params.get('p_values', (0, 1, 2)),
+                        d_values=model_params.get('d_values', (0, 1)),
+                        q_values=model_params.get('q_values', (0, 1, 2))
+                    )
                 model = train_arima(train_df[col], 
-                                   order=model_params.get('order', (1, 1, 1)))
+                                   order=order)
             elif model_type == 'ETS':
+                if seasonal_period is None:
+                    seasonal_period = model_params.get('seasonal_periods')
+                    if seasonal_period is None:
+                        seasonal_period = 7
+                seasonal = model_params.get('seasonal', 'add')
+                if seasonal_period < 2:
+                    seasonal = None
                 model = train_ets(train_df[col], 
-                                 seasonal=model_params.get('seasonal', 'add'),
-                                 seasonal_periods=model_params.get('seasonal_periods', 7))
+                                 seasonal=seasonal,
+                                 seasonal_periods=seasonal_period)
             elif model_type == 'PROPHET':
                 model = train_prophet(train_df[col],
                                      interval_width=model_params.get('interval_width', 0.95),
@@ -262,13 +344,18 @@ def train_all_variables(train_df, test_df, model_type='SARIMA', model_params=Non
             elif model_type == 'NAIVE':
                 model = train_naive(train_df[col])
             elif model_type == 'SEASONAL_NAIVE':
+                if seasonal_period is None:
+                    seasonal_period = model_params.get('season')
+                    if seasonal_period is None:
+                        seasonal_period = 7
                 model = train_seasonal_naive(train_df[col], 
-                                            season=model_params.get('season', 7))
+                                            season=seasonal_period)
             else:
                 raise ValueError(f"Unknown model type: {model_type}")
             
             # Forecast
             forecast = forecast_model(model, len(test_df), model_type, train_df[col])
+            forecast = np.asarray(forecast)
             
             # Evaluate
             metrics = evaluate_forecast(test_df[col], forecast)
@@ -376,12 +463,12 @@ def get_default_params(model_type):
         Dict of default parameters
     """
     defaults = {
-        'SARIMA': {'order': (1, 1, 1), 'seasonal_order': (1, 1, 1, 7)},
-        'ARIMA': {'order': (1, 1, 1)},
-        'ETS': {'seasonal': 'add', 'seasonal_periods': 7},
+        'SARIMA': {'order': (1, 1, 1), 'seasonal_order': None, 'auto_seasonal': True},
+        'ARIMA': {'order': (1, 1, 1), 'auto_arima': True},
+        'ETS': {'seasonal': 'add', 'seasonal_periods': None, 'auto_seasonal': True},
         'PROPHET': {'interval_width': 0.95, 'yearly_seasonality': True, 'weekly_seasonality': True},
         'GARCH': {'p': 1, 'q': 1},
         'NAIVE': {},
-        'SEASONAL_NAIVE': {'season': 7}
+        'SEASONAL_NAIVE': {'season': None, 'auto_seasonal': True}
     }
     return defaults.get(model_type, {})

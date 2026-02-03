@@ -15,7 +15,7 @@ try:
     from tensorflow import keras
     from tensorflow.keras.models import Sequential
     from tensorflow.keras.layers import LSTM, GRU, Dense, Dropout, Bidirectional
-    from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+    from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
     TF_AVAILABLE = True
 except ImportError:
     TF_AVAILABLE = False
@@ -242,6 +242,7 @@ def train_dl_model(X_train, y_train, model_type='LSTM', model_params=None,
     
     # Callbacks
     early_stop = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=1e-5)
     
     # Train
     history = model.fit(
@@ -249,7 +250,8 @@ def train_dl_model(X_train, y_train, model_type='LSTM', model_params=None,
         epochs=epochs,
         batch_size=batch_size,
         validation_split=validation_split,
-        callbacks=[early_stop],
+        callbacks=[early_stop, reduce_lr],
+        shuffle=False,
         verbose=verbose
     )
     
@@ -355,6 +357,13 @@ def train_and_evaluate(train_df, test_df, model_type='LSTM', model_params=None,
         model_params = {}
     
     target_cols = train_df.columns.tolist()
+
+    # Reproducibility for DL models
+    np.random.seed(42)
+    try:
+        tf.random.set_seed(42)
+    except Exception:
+        pass
     
     print(f"\nTraining {model_type} model...")
     print(f"Targets: {len(target_cols)}, Lookback: {lookback}")

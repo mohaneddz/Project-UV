@@ -7,6 +7,8 @@ from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.svm import SVR
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.multioutput import MultiOutputRegressor
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 import pickle
 import os
 import warnings
@@ -124,7 +126,11 @@ def train_linear_regression(X_train, y_train):
     Returns:
         Fitted model
     """
-    model = LinearRegression()
+    # Scale features for linear models to stabilize coefficients
+    model = Pipeline([
+        ('scaler', StandardScaler()),
+        ('model', LinearRegression())
+    ])
     return model.fit(X_train, y_train)
 
 
@@ -139,7 +145,10 @@ def train_ridge(X_train, y_train, alpha=1.0):
     Returns:
         Fitted model
     """
-    model = Ridge(alpha=alpha)
+    model = Pipeline([
+        ('scaler', StandardScaler()),
+        ('model', Ridge(alpha=alpha))
+    ])
     return model.fit(X_train, y_train)
 
 
@@ -154,7 +163,15 @@ def train_lasso(X_train, y_train, alpha=1.0):
     Returns:
         Fitted model
     """
-    model = Lasso(alpha=alpha, max_iter=5000)
+    if y_train.ndim > 1 and y_train.shape[1] > 1:
+        lasso = MultiOutputRegressor(Lasso(alpha=alpha, max_iter=5000))
+    else:
+        lasso = Lasso(alpha=alpha, max_iter=5000)
+
+    model = Pipeline([
+        ('scaler', StandardScaler()),
+        ('model', lasso)
+    ])
     return model.fit(X_train, y_train)
 
 
@@ -171,9 +188,14 @@ def train_svr(X_train, y_train, kernel='rbf', C=1.0):
         Fitted model
     """
     if y_train.ndim > 1 and y_train.shape[1] > 1:
-        model = MultiOutputRegressor(SVR(kernel=kernel, C=C))
+        svr = MultiOutputRegressor(SVR(kernel=kernel, C=C))
     else:
-        model = SVR(kernel=kernel, C=C)
+        svr = SVR(kernel=kernel, C=C)
+
+    model = Pipeline([
+        ('scaler', StandardScaler()),
+        ('model', svr)
+    ])
     return model.fit(X_train, y_train)
 
 
@@ -314,7 +336,7 @@ def train_and_evaluate(X_train, X_test, y_train, y_test, model_type='RANDOM_FORE
         
         for i, col in enumerate(target_cols):
             predictions_dict[col] = {
-                'train': pd.Series([]),  # ML models don't have train series
+                'train': pd.Series(dtype=float),  # ML models don't have train series
                 'test': test_df[col],
                 'forecast': y_pred[:, i]
             }
@@ -346,14 +368,19 @@ def get_feature_importance(model, feature_names, model_type):
         Array of feature importances (or None)
     """
     try:
-        if hasattr(model, 'feature_importances_'):
-            return model.feature_importances_
-        elif hasattr(model, 'estimators_'):  # MultiOutputRegressor
-            if hasattr(model.estimators_[0], 'feature_importances_'):
-                return model.estimators_[0].feature_importances_
-        elif hasattr(model, 'coef_'):
-            return np.abs(model.coef_).mean(axis=0) if model.coef_.ndim > 1 else np.abs(model.coef_)
-    except:
+        # Unwrap Pipeline if present
+        base_model = model
+        if hasattr(model, 'named_steps') and 'model' in model.named_steps:
+            base_model = model.named_steps['model']
+
+        if hasattr(base_model, 'feature_importances_'):
+            return base_model.feature_importances_
+        elif hasattr(base_model, 'estimators_'):  # MultiOutputRegressor
+            if hasattr(base_model.estimators_[0], 'feature_importances_'):
+                return base_model.estimators_[0].feature_importances_
+        elif hasattr(base_model, 'coef_'):
+            return np.abs(base_model.coef_).mean(axis=0) if base_model.coef_.ndim > 1 else np.abs(base_model.coef_)
+    except Exception:
         pass
     return None
 
@@ -368,13 +395,13 @@ def get_default_params(model_type):
         Dict of default parameters
     """
     defaults = {
-        'RANDOM_FOREST': {'n_estimators': 100, 'max_depth': 10, 'random_state': 42},
-        'XGBOOST': {'n_estimators': 100, 'max_depth': 6, 'learning_rate': 0.1, 'random_state': 42},
-        'LIGHTGBM': {'n_estimators': 100, 'max_depth': -1, 'learning_rate': 0.1, 'random_state': 42},
+        'RANDOM_FOREST': {'n_estimators': 300, 'max_depth': None, 'random_state': 42},
+        'XGBOOST': {'n_estimators': 300, 'max_depth': 6, 'learning_rate': 0.05, 'random_state': 42},
+        'LIGHTGBM': {'n_estimators': 300, 'max_depth': -1, 'learning_rate': 0.05, 'random_state': 42},
         'LINEAR_REGRESSION': {},
         'RIDGE': {'alpha': 1.0},
-        'LASSO': {'alpha': 1.0},
-        'SVR': {'kernel': 'rbf', 'C': 1.0}
+        'LASSO': {'alpha': 0.1},
+        'SVR': {'kernel': 'rbf', 'C': 10.0}
     }
     return defaults.get(model_type, {})
 
