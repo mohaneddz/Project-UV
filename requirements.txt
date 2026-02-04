@@ -21,3 +21,10 @@ catboost>=1.2.0
 
 # Utilities
 scipy>=1.9.0
+
+
+requests
+folium
+geopandas
+shapely
+seaborn
