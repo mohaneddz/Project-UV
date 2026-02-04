@@ -109,6 +109,66 @@ def train_xgboost(X_train, y_train, n_estimators=100, max_depth=6, learning_rate
     
     return model.fit(X_train, y_train)
 
+def train_xgboost_ml(df, df_full, test_ts, exclude_features=None):
+    """Train XGBoost with complete ML pipeline.
+    
+    Args:
+        df: DataFrame with non-null target values
+        df_full: Full DataFrame including future dates
+        test_ts: Test time series for sizing
+        exclude_features: List of features to exclude
+        
+    Returns:
+        Tuple of (model, metrics_dict, predictions_dict)
+    """
+    from utils.ml import train_and_evaluate_ml
+    return train_and_evaluate_ml(df, df_full, test_ts, 'XGBOOST', exclude_features, forecast_future=True)
+
+
+def train_catboost_ml(df, df_full, test_ts, exclude_features=None):
+    """Train CatBoost with complete ML pipeline.
+    
+    Args:
+        df: DataFrame with non-null target values
+        df_full: Full DataFrame including future dates
+        test_ts: Test time series for sizing
+        exclude_features: List of features to exclude
+        
+    Returns:
+        Tuple of (model, metrics_dict, predictions_dict)
+    """
+    from utils.ml import train_and_evaluate_ml
+    return train_and_evaluate_ml(df, df_full, test_ts, 'CATBOOST', exclude_features, forecast_future=True)
+def train_adaboost_ml(df, df_full, test_ts, exclude_features=None):
+    """Train AdaBoost with complete ML pipeline.
+    
+    Args:
+        df: DataFrame with non-null target values
+        df_full: Full DataFrame including future dates
+        test_ts: Test time series for sizing
+        exclude_features: List of features to exclude
+        
+    Returns:
+        Tuple of (model, metrics_dict, predictions_dict)
+    """
+    from utils.ml import train_and_evaluate_ml
+    return train_and_evaluate_ml(df, df_full, test_ts, 'ADABOOST', exclude_features, forecast_future=True)
+
+
+def train_gradient_boosting_ml(df, df_full, test_ts, exclude_features=None):
+    """Train Gradient Boosting with complete ML pipeline.
+    
+    Args:
+        df: DataFrame with non-null target values
+        df_full: Full DataFrame including future dates
+        test_ts: Test time series for sizing
+        exclude_features: List of features to exclude
+        
+    Returns:
+        Tuple of (model, metrics_dict, predictions_dict)
+    """
+    from utils.ml import train_and_evaluate_ml
+    return train_and_evaluate_ml(df, df_full, test_ts, 'GRADIENT_BOOSTING', exclude_features, forecast_future=True)
 
 def train_adaboost(X_train, y_train, n_estimators=50, learning_rate=1.0, random_state=42):
     """Train AdaBoost model.

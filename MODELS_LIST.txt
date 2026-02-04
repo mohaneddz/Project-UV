@@ -4,106 +4,144 @@ UV PREDICTION MODELS - LIST OF ALL AVAILABLE MODELS
 
 TIME SERIES MODELS (ts.py)
 ---------------------------
-1. SARIMA - Seasonal AutoRegressive Integrated Moving Average
+1. SARIMAX - SARIMAX with Fourier Terms for Yearly Seasonality
+   - Best for: Data with complex yearly seasonal patterns
+   - Parameters: order=(1,1,1), seasonal_order=(1,0,1,7), fourier_K=8
+
+2. SARIMA - Seasonal AutoRegressive Integrated Moving Average
    - Best for: Data with seasonal patterns and trends
    - Parameters: order=(1,1,1), seasonal_order=(1,1,1,7)
 
-2. ARIMA - AutoRegressive Integrated Moving Average
+3. ARIMA - AutoRegressive Integrated Moving Average
    - Best for: Non-seasonal time series data
    - Parameters: order=(1,1,1)
 
-3. ETS - Exponential Smoothing (Holt-Winters)
+4. ETS - Exponential Smoothing (Holt-Winters)
    - Best for: Data with trend and seasonality
    - Parameters: seasonal='add', seasonal_periods=7
 
-4. NAIVE - Naive Forecast
+5. PROPHET - Facebook Prophet (requires: pip install prophet)
+   - Best for: Yearly, weekly, daily seasonality with holidays
+   - Parameters: yearly_seasonality=True, weekly_seasonality=True
+
+6. GARCH - GARCH-inspired model
+   - Best for: Volatility modeling
+   - Parameters: p=1, q=1
+
+7. NAIVE - Naive Forecast
    - Best for: Baseline comparison
    - Simple last-value persistence
 
-5. SEASONAL_NAIVE - Seasonal Naive Forecast
+8. SEASONAL_NAIVE - Seasonal Naive Forecast
    - Best for: Seasonal baseline
    - Uses last seasonal values
 
 
 MACHINE LEARNING MODELS (ml.py)
 --------------------------------
-1. RANDOM_FOREST - Random Forest Regressor
-   - Best for: Non-linear relationships, feature importance
-   - Parameters: n_estimators=100, max_depth=10
-
-2. XGBOOST - XGBoost Regressor (requires: pip install xgboost)
-   - Best for: High performance, handles missing data
-   - Parameters: n_estimators=100, max_depth=6, learning_rate=0.1
-
-3. LIGHTGBM - LightGBM Regressor (requires: pip install lightgbm)
-   - Best for: Fast training, large datasets
-   - Parameters: n_estimators=100, learning_rate=0.1
-
-4. LINEAR_REGRESSION - Linear Regression
+1. LINEAR_REGRESSION - Linear Regression
    - Best for: Linear relationships, interpretability
    - Simple and fast
 
-5. RIDGE - Ridge Regression (L2 regularization)
+2. RANDOM_FOREST - Random Forest Regressor
+   - Best for: Non-linear relationships, feature importance
+   - Parameters: n_estimators=100, max_depth=10
+
+3. LGBM - LightGBM Regressor (requires: pip install lightgbm)
+   - Best for: Fast training, large datasets
+   - Parameters: n_estimators=100, learning_rate=0.1
+
+4. RIDGE - Ridge Regression (L2 regularization)
    - Best for: Preventing overfitting with linear models
    - Parameters: alpha=1.0
 
-6. LASSO - Lasso Regression (L1 regularization)
+5. LASSO - Lasso Regression (L1 regularization)
    - Best for: Feature selection, sparse models
    - Parameters: alpha=1.0
 
-7. SVR - Support Vector Regressor
+6. SVR - Support Vector Regressor
    - Best for: Small datasets, non-linear patterns
    - Parameters: kernel='rbf', C=1.0
+
+
+BOOSTING MODELS (boosters.py)
+------------------------------
+1. XGBOOST - XGBoost Regressor (requires: pip install xgboost)
+   - Best for: High performance, handles missing data
+   - Parameters: n_estimators=100, max_depth=6, learning_rate=0.1
+
+2. CATBOOST - CatBoost Regressor (requires: pip install catboost)
+   - Best for: Categorical features, minimal tuning
+   - Parameters: iterations=100, depth=6, learning_rate=0.1
+
+3. ADABOOST - Adaptive Boosting
+   - Best for: Ensemble of weak learners
+   - Parameters: n_estimators=50, learning_rate=1.0
+
+4. GRADIENT_BOOSTING - Gradient Boosting Regressor
+   - Best for: Strong performance, interpretability
+   - Parameters: n_estimators=100, max_depth=3, learning_rate=0.1
 
 
 DEEP LEARNING MODELS (dl.py)
 -----------------------------
 Requires: pip install tensorflow
 
-1. LSTM - Long Short-Term Memory
+1. RNN - Simple Recurrent Neural Network
+   - Best for: Basic sequential patterns
+   - Parameters: units=50, dropout=0.2, lookback=30
+
+2. LSTM - Long Short-Term Memory
    - Best for: Sequential patterns, long-term dependencies
    - Parameters: units=50, dropout=0.2, lookback=30
 
-2. GRU - Gated Recurrent Unit
+3. GRU - Gated Recurrent Unit
    - Best for: Faster than LSTM, similar performance
    - Parameters: units=50, dropout=0.2, lookback=30
 
-3. BILSTM - Bidirectional LSTM
+4. BILSTM - Bidirectional LSTM
    - Best for: Capturing past and future context
    - Parameters: units=50, dropout=0.2, lookback=30
 
-4. DEEP_LSTM - Multi-layer LSTM
+5. DEEP_LSTM - Multi-layer LSTM
    - Best for: Complex patterns, large datasets
    - Parameters: units=50, dropout=0.2, lookback=30
 
-5. DEEP_GRU - Multi-layer GRU
-   - Best for: Complex patterns with faster training
-   - Parameters: units=50, dropout=0.2, lookback=30
+6. TRANSFORMER - Transformer Architecture
+   - Best for: Attention-based pattern learning
+   - Parameters: d_model=64, num_heads=4, num_layers=2
 
 
-BOOSTING MODELS (boosters.py)
-------------------------------
-1. CATBOOST - CatBoost Regressor (requires: pip install catboost)
-   - Best for: Categorical features, minimal tuning
-   - Parameters: iterations=100, depth=6, learning_rate=0.1
+TRANSFER LEARNING MODELS (tl.py)
+---------------------------------
+Requires: pip install pytorch-tabnet, tabpfn, tensorflow
 
-2. ADABOOST - Adaptive Boosting
-   - Best for: Ensemble of weak learners
-   - Parameters: n_estimators=50, learning_rate=1.0
+1. TABNET - TabNet for Tabular Data (requires: pip install pytorch-tabnet)
+   - Best for: Interpretable deep learning on tabular data
+   - Parameters: n_d=8, n_a=8, n_steps=3
 
-3. GRADIENT_BOOSTING - Gradient Boosting Regressor
-   - Best for: Strong performance, interpretability
-   - Parameters: n_estimators=100, max_depth=3, learning_rate=0.1
+2. TST - Time Series Transformer (requires: pip install tensorflow)
+   - Best for: Transformer-based time series forecasting
+   - Parameters: d_model=64, num_heads=4, num_layers=2
+
+3. PATCHTST - PatchTST for Time Series (requires: pip install tensorflow)
+   - Best for: Patch-based transformer for forecasting
+   - Parameters: patch_len=16, stride=8, lookback=30
+
+4. TABPFN - TabPFN Prior-Fitted Network (requires: pip install tabpfn)
+   - Best for: Zero-shot learning on tabular data
+   - No training needed, pre-trained model
 
 
-TOTAL MODELS: 20+
-=================
+TOTAL MODELS: 25
+================
 
 RECOMMENDED COMBINATIONS FOR COMPARISON:
 ----------------------------------------
 - Quick Test: NAIVE, LINEAR_REGRESSION, LSTM
-- Best Performance: SARIMA, XGBOOST, BILSTM, CATBOOST
+- Best Performance: SARIMAX, XGBOOST, BILSTM, CATBOOST
 - Interpretable: ARIMA, RANDOM_FOREST, LINEAR_REGRESSION
-- Production Ready: SARIMA, LIGHTGBM, GRU
+- Production Ready: SARIMAX, LGBM, GRU
 - Research/Academic: All models for comprehensive comparison
+- Transfer Learning: TABNET, PATCHTST, TABPFN
 """
