@@ -26,11 +26,53 @@ except ImportError:
 
 
 # Available models
-MODELS = ['SARIMA', 'ARIMA', 'ETS', 'NAIVE', 'SEASONAL_NAIVE']
+MODELS = ['SARIMAX', 'SARIMA', 'ARIMA', 'ETS', 'NAIVE', 'SEASONAL_NAIVE']
 if PROPHET_AVAILABLE:
     MODELS.append('PROPHET')
 if GARCH_AVAILABLE:
     MODELS.append('GARCH')
+
+
+def train_sarimax(train, order=(1, 1, 1), seasonal_order=(1, 0, 1, 7), trend='t', fourier_K=8, fourier_period=365.25, maxiter=100):
+    """Train SARIMAX model with Fourier terms for yearly seasonality.
+    
+    Args:
+        train: Training series
+        order: ARIMA order (p, d, q)
+        seasonal_order: Seasonal order (P, D, Q, s) for short-term seasonality (e.g., weekly)
+        trend: Trend specification ('n', 'c', 't', 'ct')
+        fourier_K: Number of Fourier term pairs for yearly seasonality
+        fourier_period: Period for Fourier terms (default 365.25 for yearly)
+        maxiter: Maximum iterations for optimization
+        
+    Returns:
+        Tuple of (fitted_model, fourier_K, fourier_period) for forecasting
+    """
+    # Generate Fourier terms for yearly seasonality
+    def fourier_terms(index, period=365.25, K=6):
+        t = np.arange(len(index))
+        X = {}
+        for k in range(1, K + 1):
+            X[f"sin{k}"] = np.sin(2 * np.pi * k * t / period)
+            X[f"cos{k}"] = np.cos(2 * np.pi * k * t / period)
+        return pd.DataFrame(X, index=index)
+    
+    X_train = fourier_terms(train.index, period=fourier_period, K=fourier_K)
+    
+    model = SARIMAX(
+        train,
+        trend=trend,
+        exog=X_train,
+        order=order,
+        seasonal_order=seasonal_order,
+        enforce_stationarity=False,
+        enforce_invertibility=False,
+    )
+    
+    fitted_model = model.fit(disp=False, maxiter=maxiter)
+    
+    # Return model along with Fourier parameters for forecasting
+    return (fitted_model, fourier_K, fourier_period)
 
 
 def train_sarima(train, order=(1, 1, 1), seasonal_order=(1, 1, 1, 7), maxiter=200):
@@ -228,15 +270,33 @@ def forecast_model(model, steps, model_type='SARIMA', train_data=None):
     """Generate forecast from fitted model.
     
     Args:
-        model: Fitted model or value
+        model: Fitted model or value (for SARIMAX: tuple of (model, K, period))
         steps: Number of steps to forecast
         model_type: Type of model
-        train_data: Original training data (needed for Prophet)
+        train_data: Original training data (needed for Prophet and SARIMAX)
         
     Returns:
         Forecast array
     """
-    if model_type in ['SARIMA', 'ARIMA', 'ETS']:
+    if model_type == 'SARIMAX':
+        # model is a tuple: (fitted_model, fourier_K, fourier_period)
+        fitted_model, fourier_K, fourier_period = model
+        
+        # Generate Fourier terms for forecast horizon
+        def fourier_terms(start_idx, steps, period=365.25, K=6):
+            t = np.arange(start_idx, start_idx + steps)
+            X = {}
+            for k in range(1, K + 1):
+                X[f"sin{k}"] = np.sin(2 * np.pi * k * t / period)
+                X[f"cos{k}"] = np.cos(2 * np.pi * k * t / period)
+            return pd.DataFrame(X)
+        
+        # Start index is the length of training data
+        start_idx = len(train_data) if train_data is not None else 0
+        X_forecast = fourier_terms(start_idx, steps, period=fourier_period, K=fourier_K)
+        
+        return fitted_model.forecast(steps=steps, exog=X_forecast)
+    elif model_type in ['SARIMA', 'ARIMA', 'ETS']:
         return model.forecast(steps=steps)
     elif model_type == 'PROPHET':
         future = model.make_future_dataframe(periods=steps)
@@ -359,7 +419,18 @@ def train_all_variables(train_df, test_df, model_type='SARIMA', model_params=Non
                 )
 
             # Train model
-            if model_type == 'SARIMA':
+            if model_type == 'SARIMAX':
+                seasonal_order = model_params.get('seasonal_order', (1, 0, 1, 7))
+                model = train_sarimax(
+                    train_df[col],
+                    order=model_params.get('order', (1, 1, 1)),
+                    seasonal_order=seasonal_order,
+                    trend=model_params.get('trend', 't'),
+                    fourier_K=model_params.get('fourier_K', 8),
+                    fourier_period=model_params.get('fourier_period', 365.25),
+                    maxiter=model_params.get('maxiter', 100)
+                )
+            elif model_type == 'SARIMA':
                 seasonal_order = model_params.get('seasonal_order')
                 if seasonal_period is None:
                     if seasonal_order and len(seasonal_order) == 4:
@@ -534,6 +605,7 @@ def get_default_params(model_type):
         Dict of default parameters
     """
     defaults = {
+        'SARIMAX': {'order': (1, 1, 1), 'seasonal_order': (1, 0, 1, 7), 'trend': 't', 'fourier_K': 8, 'fourier_period': 365.25, 'maxiter': 100},
         'SARIMA': {'order': (1, 1, 1), 'seasonal_order': None, 'auto_seasonal': True, 'max_seasonal_period': 30, 'maxiter': 200},
         'ARIMA': {'order': (1, 1, 1), 'auto_arima': True},
         'ETS': {'seasonal': 'add', 'seasonal_periods': None, 'auto_seasonal': True, 'max_seasonal_period': 30},
