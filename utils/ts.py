@@ -384,6 +384,56 @@ def evaluate_forecast(actual, forecast):
     return {'RMSE': rmse, 'MAE': mae}
 
 
+def train_and_evaluate_ts(train_series, test_series, model_type='SARIMAX', model_params=None):
+    """Complete time series training and evaluation pipeline.
+    
+    Args:
+        train_series: Training time series
+        test_series: Test time series
+        model_type: Type of TS model to train
+        model_params: Optional model parameters dict
+        
+    Returns:
+        Tuple of (model, metrics_dict, forecast_array)
+    """
+    h = len(test_series)
+    
+    # Set default parameters if not provided
+    if model_params is None:
+        model_params = get_default_params(model_type)
+    
+    # Train model based on type
+    if model_type == 'SARIMAX':
+        model = train_sarimax(train_series, **model_params)
+    elif model_type == 'SARIMA':
+        model = train_sarima(train_series, **model_params)
+    elif model_type == 'ARIMA':
+        model = train_arima(train_series, **model_params)
+    elif model_type == 'ETS':
+        model = train_ets(train_series, **model_params)
+    elif model_type == 'NAIVE':
+        model = train_naive(train_series)
+    elif model_type == 'SEASONAL_NAIVE':
+        model = train_seasonal_naive(train_series, season=model_params.get('season', 7))
+    elif model_type == 'PROPHET' and PROPHET_AVAILABLE:
+        model = train_prophet(train_series)
+    elif model_type == 'GARCH' and GARCH_AVAILABLE:
+        model = train_garch(train_series, **model_params)
+    else:
+        raise ValueError(f"Unknown model type: {model_type}")
+    
+    # Generate forecast
+    forecast = forecast_model(model, h, model_type, train_series)
+    forecast = np.asarray(forecast)
+    
+    # Evaluate
+    metrics = evaluate_forecast(test_series.values, forecast)
+    
+    print(f"{model_type} - RMSE: {metrics['RMSE']:.4f}, MAE: {metrics['MAE']:.4f}")
+    
+    return model, metrics, forecast
+
+
 def train_all_variables(train_df, test_df, model_type='SARIMA', model_params=None):
     """Train model for all variables in DataFrame.
     

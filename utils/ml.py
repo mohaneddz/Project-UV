@@ -272,6 +272,113 @@ def create_predictions_dict(train_data, test_data, predictions, target_cols):
     return predictions_dict
 
 
+def train_and_evaluate_ml(df, df_full, test_ts, model_type='LINEAR_REGRESSION', 
+                          exclude_features=None, forecast_future=True):
+    """Complete ML training pipeline with forecasting.
+    
+    Args:
+        df: DataFrame with non-null target values
+        df_full: Full DataFrame including future dates
+        test_ts: Test time series for sizing
+        model_type: Type of ML model to train
+        exclude_features: List of features to exclude (e.g., ['ALLSKY_SFC_UVA', 'ALLSKY_SFC_UVB'])
+        forecast_future: Whether to forecast future dates
+        
+    Returns:
+        Tuple of (model, metrics_dict, predictions_dict)
+    """
+    from utils.preprocess import prepare_for_ml
+    
+    # Get only columns that exist in both dataframes (excluding Date and any EDA-added columns like Year)
+    common_cols = [col for col in df.columns if col in df_full.columns and col != 'Date']
+    
+    # Prepare ML data using only common columns
+    target_cols = ['ALLSKY_SFC_UV_INDEX']
+    X_train, X_test, y_train, y_test, feature_cols = prepare_for_ml(
+        df.set_index('Date')[common_cols],
+        target_cols,
+        test_days=len(test_ts)
+    )
+    
+    # Exclude specified features
+    if exclude_features:
+        fair_features = [col for col in feature_cols if not any(exc in col for exc in exclude_features)]
+        X_train = X_train[fair_features]
+        X_test = X_test[fair_features]
+        print(f"Features: {len(fair_features)} (excluded {', '.join(exclude_features)})")
+    else:
+        fair_features = feature_cols
+    
+    # Train model based on type
+    if model_type == 'LINEAR_REGRESSION':
+        model = train_linear_regression(X_train, y_train)
+    elif model_type == 'RANDOM_FOREST':
+        model = train_random_forest(X_train, y_train)
+    elif model_type == 'LIGHTGBM' and LIGHTGBM_AVAILABLE:
+        model = train_lightgbm(X_train, y_train)
+    elif model_type == 'XGBOOST' and XGBOOST_AVAILABLE:
+        model = train_xgboost(X_train, y_train)
+    elif model_type in ['CATBOOST', 'ADABOOST', 'GRADIENT_BOOSTING']:
+        # Import boosters here to avoid circular dependency
+        from utils.boosters import (train_catboost, train_adaboost, train_gradient_boosting,
+                                     CATBOOST_AVAILABLE)
+        if model_type == 'CATBOOST':
+            if CATBOOST_AVAILABLE:
+                model = train_catboost(X_train, y_train, verbose=False)
+            else:
+                print("CatBoost not available, using Linear Regression")
+                model = train_linear_regression(X_train, y_train)
+        elif model_type == 'ADABOOST':
+            model = train_adaboost(X_train, y_train)
+        elif model_type == 'GRADIENT_BOOSTING':
+            model = train_gradient_boosting(X_train, y_train)
+    else:
+        model = train_linear_regression(X_train, y_train)
+    
+    # Predict on test set
+    y_pred = model.predict(X_test)
+    
+    # Calculate metrics
+    rmse = np.sqrt(mean_squared_error(y_test.values, y_pred))
+    mae = mean_absolute_error(y_test.values, y_pred)
+    metrics = {'RMSE': rmse, 'MAE': mae}
+    
+    print(f"{model_type} - RMSE: {metrics['RMSE']:.4f}, MAE: {metrics['MAE']:.4f}")
+    
+    # Forecast future if requested
+    future_pred = None
+    future_dates = None
+    if forecast_future:
+        future_df = df_full[df_full['Date'] >= df['Date'].max()]
+        if len(future_df) > 0:
+            # Get common columns (excluding Date and any columns added later like Year)
+            common_cols = [col for col in df.columns if col != 'Date' and col in df_full.columns]
+            
+            future_df_indexed = future_df.set_index('Date')
+            X_future, _, _, _, _ = prepare_for_ml(
+                pd.concat([df.set_index('Date')[common_cols], 
+                          future_df_indexed[common_cols]]),
+                target_cols,
+                test_days=len(future_df)
+            )
+            X_future = X_future[fair_features][-len(future_df):]
+            future_pred = model.predict(X_future)
+            future_dates = future_df_indexed.index
+            print(f"Forecast: {len(future_pred)} days, Range: {future_pred.min():.2f} - {future_pred.max():.2f}")
+    
+    # Package results
+    test_dates = df[df['Date'] >= test_ts.index[0]]['Date'].values[:len(y_pred)]
+    predictions = {
+        'test_dates': test_dates,
+        'y_test': y_test.values,
+        'y_pred': y_pred,
+        'future_dates': future_dates,
+        'future_pred': future_pred
+    }
+    
+    return model, metrics, predictions
+
+
 def train_and_evaluate(X_train, X_test, y_train, y_test, model_type='RANDOM_FOREST', 
                       model_params=None, save_dir='models'):
     """Complete ML training and evaluation pipeline.

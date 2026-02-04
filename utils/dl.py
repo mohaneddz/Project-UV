@@ -14,7 +14,11 @@ try:
     import tensorflow as tf
     from tensorflow import keras
     from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import LSTM, GRU, Dense, Dropout, Bidirectional
+    from tensorflow.keras.layers import (
+        LSTM, GRU, Dense, Dropout, Bidirectional, 
+        SimpleRNN, MultiHeadAttention, LayerNormalization, 
+        GlobalAveragePooling1D, Input
+    )
     from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
     TF_AVAILABLE = True
 except ImportError:
@@ -22,7 +26,7 @@ except ImportError:
 
 
 # Available models
-MODELS = ['LSTM', 'GRU', 'BILSTM', 'DEEP_LSTM', 'DEEP_GRU'] if TF_AVAILABLE else []
+MODELS = ['RNN', 'LSTM', 'GRU', 'BILSTM', 'DEEP_LSTM', 'DEEP_GRU', 'TRANSFORMER'] if TF_AVAILABLE else []
 
 
 def create_sequences(data, lookback=30):
@@ -59,6 +63,30 @@ def build_lstm(input_shape, output_dim, units=50, dropout=0.2):
     
     model = Sequential([
         LSTM(units, input_shape=input_shape),
+        Dropout(dropout),
+        Dense(output_dim)
+    ])
+    model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+    return model
+
+
+def build_rnn(input_shape, output_dim, units=50, dropout=0.2):
+    """Build Simple RNN model.
+    
+    Args:
+        input_shape: Tuple of (timesteps, features)
+        output_dim: Number of output features
+        units: Number of RNN units
+        dropout: Dropout rate
+        
+    Returns:
+        Compiled Keras model
+    """
+    if not TF_AVAILABLE:
+        raise ImportError("TensorFlow not installed. Install with: pip install tensorflow")
+    
+    model = Sequential([
+        SimpleRNN(units, input_shape=input_shape),
         Dropout(dropout),
         Dense(output_dim)
     ])
@@ -166,6 +194,59 @@ def build_deep_gru(input_shape, output_dim, units=50, dropout=0.2):
     return model
 
 
+def build_transformer(input_shape, output_dim, d_model=64, num_heads=4, 
+                     num_layers=2, dropout=0.1, ff_dim=128):
+    """Build Transformer model for time series.
+    
+    Args:
+        input_shape: Tuple of (timesteps, features)
+        output_dim: Number of output features
+        d_model: Dimension of model embeddings
+        num_heads: Number of attention heads
+        num_layers: Number of transformer blocks
+        dropout: Dropout rate
+        ff_dim: Feed-forward network dimension
+        
+    Returns:
+        Compiled Keras model
+    """
+    if not TF_AVAILABLE:
+        raise ImportError("TensorFlow not installed. Install with: pip install tensorflow")
+    
+    inputs = Input(shape=input_shape)
+    x = inputs
+    
+    # Project input to d_model dimensions
+    x = Dense(d_model)(x)
+    
+    # Stack transformer blocks
+    for _ in range(num_layers):
+        # Multi-head attention
+        attn_output = MultiHeadAttention(
+            num_heads=num_heads, 
+            key_dim=d_model // num_heads,
+            dropout=dropout
+        )(x, x)
+        attn_output = Dropout(dropout)(attn_output)
+        x = LayerNormalization(epsilon=1e-6)(x + attn_output)
+        
+        # Feed-forward network
+        ff_output = Dense(ff_dim, activation='relu')(x)
+        ff_output = Dropout(dropout)(ff_output)
+        ff_output = Dense(d_model)(ff_output)
+        ff_output = Dropout(dropout)(ff_output)
+        x = LayerNormalization(epsilon=1e-6)(x + ff_output)
+    
+    # Global pooling and output
+    x = GlobalAveragePooling1D()(x)
+    x = Dropout(dropout)(x)
+    outputs = Dense(output_dim)(x)
+    
+    model = keras.Model(inputs=inputs, outputs=outputs)
+    model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+    return model
+
+
 def prepare_dl_data(train_df, test_df, lookback=30, scale=True):
     """Prepare data for deep learning models.
     
@@ -227,7 +308,9 @@ def train_dl_model(X_train, y_train, model_type='LSTM', model_params=None,
     output_dim = y_train.shape[1] if y_train.ndim > 1 else 1
     
     # Build model
-    if model_type == 'LSTM':
+    if model_type == 'RNN':
+        model = build_rnn(input_shape, output_dim, **model_params)
+    elif model_type == 'LSTM':
         model = build_lstm(input_shape, output_dim, **model_params)
     elif model_type == 'GRU':
         model = build_gru(input_shape, output_dim, **model_params)
@@ -237,6 +320,8 @@ def train_dl_model(X_train, y_train, model_type='LSTM', model_params=None,
         model = build_deep_lstm(input_shape, output_dim, **model_params)
     elif model_type == 'DEEP_GRU':
         model = build_deep_gru(input_shape, output_dim, **model_params)
+    elif model_type == 'TRANSFORMER':
+        model = build_transformer(input_shape, output_dim, **model_params)
     else:
         raise ValueError(f"Unknown model type: {model_type}")
     
@@ -433,11 +518,13 @@ def get_default_params(model_type):
         Dict of default parameters
     """
     defaults = {
+        'RNN': {'units': 50, 'dropout': 0.2},
         'LSTM': {'units': 50, 'dropout': 0.2},
         'GRU': {'units': 50, 'dropout': 0.2},
         'BILSTM': {'units': 50, 'dropout': 0.2},
         'DEEP_LSTM': {'units': 50, 'dropout': 0.2},
-        'DEEP_GRU': {'units': 50, 'dropout': 0.2}
+        'DEEP_GRU': {'units': 50, 'dropout': 0.2},
+        'TRANSFORMER': {'d_model': 64, 'num_heads': 4, 'num_layers': 2, 'dropout': 0.1, 'ff_dim': 128}
     }
     return defaults.get(model_type, {})
 
