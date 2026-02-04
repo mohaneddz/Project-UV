@@ -2,3 +2,5 @@ __pycache__/**
 gen/**/**
 models/**/**
 utils/__pycache__/**
+
+DM_ENV/**/**
