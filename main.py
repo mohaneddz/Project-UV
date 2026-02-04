@@ -7,12 +7,12 @@ import numpy as np
 from datetime import datetime
 
 # Import modules
-import preprocess
-import plot
-import ts
-import ml
-import dl
-import boosters
+from utils import preprocess
+from utils import plot
+from utils import ts
+from utils import ml
+from utils import dl
+from utils import boosters
 
 
 # Model categories and available models
