@@ -2,7 +2,10 @@
 
 import pandas as pd
 import numpy as np
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.ensemble import (
+    RandomForestRegressor, RandomForestClassifier,
+    AdaBoostRegressor, GradientBoostingRegressor
+)
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.svm import SVR
 from sklearn.metrics import mean_squared_error, mean_absolute_error, classification_report, confusion_matrix
@@ -29,7 +32,8 @@ except ImportError:
 
 
 # Available models
-MODELS = ['RANDOM_FOREST', 'LINEAR_REGRESSION', 'RIDGE', 'LASSO', 'SVR']
+MODELS = ['RANDOM_FOREST', 'LINEAR_REGRESSION', 'RIDGE', 'LASSO', 'SVR', 
+          'ADABOOST', 'GRADIENT_BOOSTING']
 if XGBOOST_AVAILABLE:
     MODELS.append('XGBOOST')
 if LIGHTGBM_AVAILABLE:
@@ -199,6 +203,56 @@ def train_svr(X_train, y_train, kernel='rbf', C=1.0):
     return model.fit(X_train, y_train)
 
 
+def train_adaboost(X_train, y_train, n_estimators=50, learning_rate=1.0, random_state=42):
+    """Train AdaBoost Regressor model.
+    
+    Args:
+        X_train: Training features
+        y_train: Training targets
+        n_estimators: Number of boosting rounds
+        learning_rate: Learning rate shrinks the contribution of each regressor
+        random_state: Random seed
+        
+    Returns:
+        Fitted model
+    """
+    if y_train.ndim > 1 and y_train.shape[1] > 1:
+        model = MultiOutputRegressor(
+            AdaBoostRegressor(n_estimators=n_estimators, learning_rate=learning_rate, 
+                            random_state=random_state)
+        )
+    else:
+        model = AdaBoostRegressor(n_estimators=n_estimators, learning_rate=learning_rate, 
+                                 random_state=random_state)
+    return model.fit(X_train, y_train)
+
+
+def train_gradient_boosting(X_train, y_train, n_estimators=100, learning_rate=0.1, 
+                           max_depth=3, random_state=42):
+    """Train Gradient Boosting Regressor model.
+    
+    Args:
+        X_train: Training features
+        y_train: Training targets
+        n_estimators: Number of boosting rounds
+        learning_rate: Learning rate shrinks the contribution of each tree
+        max_depth: Maximum depth of the individual regression estimators
+        random_state: Random seed
+        
+    Returns:
+        Fitted model
+    """
+    if y_train.ndim > 1 and y_train.shape[1] > 1:
+        model = MultiOutputRegressor(
+            GradientBoostingRegressor(n_estimators=n_estimators, learning_rate=learning_rate,
+                                    max_depth=max_depth, random_state=random_state)
+        )
+    else:
+        model = GradientBoostingRegressor(n_estimators=n_estimators, learning_rate=learning_rate,
+                                        max_depth=max_depth, random_state=random_state)
+    return model.fit(X_train, y_train)
+
+
 def predict_model(model, X):
     """Generate predictions from model.
     
@@ -210,6 +264,27 @@ def predict_model(model, X):
         Predictions array
     """
     return model.predict(X)
+
+
+def evaluate_ml_model(y_true, y_pred):
+    """Calculate evaluation metrics for model predictions.
+    
+    Args:
+        y_true: True values (array-like)
+        y_pred: Predicted values (array-like)
+        
+    Returns:
+        dict: Dictionary containing RMSE and MAE metrics
+    """
+    # Ensure arrays are 1D for single output models
+    y_true = np.asarray(y_true).flatten()
+    y_pred = np.asarray(y_pred).flatten()
+    
+    # Calculate metrics
+    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+    mae = mean_absolute_error(y_true, y_pred)
+    
+    return {'RMSE': rmse, 'MAE': mae}
 
 
 def evaluate_predictions(y_true, y_pred, target_cols):

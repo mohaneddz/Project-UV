@@ -261,9 +261,18 @@ def train_seasonal_naive(train, season=7):
         season: Seasonal period
         
     Returns:
-        Last seasonal values
+        Dictionary with training data and season for proper forecasting
     """
-    return train.iloc[-season:]
+    # Validate season parameter
+    if season < 2:
+        season = 7  # Default to weekly if invalid
+    
+    # Ensure we have enough data for at least one complete season
+    if len(train) < season:
+        season = max(2, len(train) // 2)  # Use half the data length if not enough
+    
+    # Store the entire training series to enable proper seasonal indexing
+    return {'data': train, 'season': season}
 
 
 def forecast_model(model, steps, model_type='SARIMA', train_data=None):
@@ -309,9 +318,20 @@ def forecast_model(model, steps, model_type='SARIMA', train_data=None):
     elif model_type == 'NAIVE':
         return np.array([model] * steps)
     elif model_type == 'SEASONAL_NAIVE':
-        # Repeat seasonal pattern
-        n_repeats = int(np.ceil(steps / len(model)))
-        forecast = np.tile(model.values, n_repeats)[:steps]
+        # Proper seasonal naive: use values from exactly 'season' periods ago
+        train_data = model['data']
+        season = model['season']
+        train_values = train_data.values
+        
+        # For each forecast step, use the value from 'season' periods ago
+        # forecast[0] uses train_values[-season], forecast[1] uses train_values[-season+1], etc.
+        forecast = np.zeros(steps)
+        for i in range(steps):
+            # Use negative indexing to get values from the last 'season' periods
+            # Cycle through the last 'season' values repeatedly
+            offset = (i % season)
+            forecast[i] = train_values[-season + offset]
+        
         return forecast
     else:
         raise ValueError(f"Unknown model type: {model_type}")
