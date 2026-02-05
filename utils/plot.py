@@ -142,6 +142,45 @@ def plot_single_forecast(train, test, forecast, variable_name, save_path=None, l
     plt.show()
 
 
+def plot_ml_predictions(predictions, metrics, model_name='Model', save_path=None):
+    """Plot ML model predictions including future forecast.
+    
+    Args:
+        predictions: Dict with test_dates, y_test, y_pred, future_dates, future_pred
+        metrics: Dict with RMSE and MAE
+        model_name: Name of the model
+        save_path: Path to save figure
+    """
+    plt.figure(figsize=(14, 6))
+    
+    # Plot test predictions
+    plt.plot(predictions['test_dates'], predictions['y_test'], 
+             label='Actual', color='blue', alpha=0.7, linewidth=2)
+    plt.plot(predictions['test_dates'], predictions['y_pred'], 
+             label='Predicted', color='green', linestyle='--', alpha=0.7, linewidth=2)
+    
+    # Plot future forecast if available
+    if predictions['future_pred'] is not None and predictions['future_dates'] is not None:
+        plt.plot(predictions['future_dates'][:len(predictions['future_pred'])], 
+                predictions['future_pred'], 
+                label='Forecast', color='red', linestyle='--', alpha=0.7, linewidth=2)
+    
+    plt.xlabel('Date', fontsize=12)
+    plt.ylabel('UV Index', fontsize=12)
+    plt.title(f'{model_name} (RMSE={metrics["RMSE"]:.4f}, MAE={metrics["MAE"]:.4f})', 
+              fontsize=14, fontweight='bold')
+    plt.legend(fontsize=10)
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"Saved plot to {save_path}")
+    
+    plt.show()
+
+
 def plot_residuals(test, forecast, variable_name, save_path=None, model_name=None):
     """Plot residual analysis for forecast.
     
