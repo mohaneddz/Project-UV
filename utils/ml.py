@@ -2,10 +2,10 @@
 
 import pandas as pd
 import numpy as np
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.svm import SVR
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error, classification_report, confusion_matrix
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -535,3 +535,101 @@ def load_model(model_type, save_dir='models'):
     print(f"Model loaded from {model_path}")
     return model
 
+
+# ==========================================
+# UV Risk Classification Logic (Consolidated)
+# ==========================================
+
+RISK_CATEGORIES = {
+    0: 'Low',
+    1: 'Moderate', 
+    2: 'High',
+    3: 'Very High',
+    4: 'Extreme'
+}
+
+def get_risk_category(uv_index):
+    """Map UV Index to WHO Risk Category.
+    
+    Args:
+        uv_index: float or int
+        
+    Returns:
+        int: Risk category code (0-4)
+    """
+    if uv_index < 3:
+        return 0  # Low (0-2)
+    elif uv_index < 6:
+        return 1  # Moderate (3-5)
+    elif uv_index < 8:
+        return 2  # High (6-7)
+    elif uv_index < 11:
+        return 3  # Very High (8-10)
+    else:
+        return 4  # Extreme (11+)
+
+def get_protection_recommendation(risk_code):
+    """Get protection recommendations based on risk code.
+    
+    Args:
+        risk_code: int
+        
+    Returns:
+        str: Recommendation text
+    """
+    recommendations = {
+        0: "No protection required. You can safely stay outside.",
+        1: "Protection required. Seek shade during midday hours! Slip on a shirt, slop on sunscreen and slap on a hat.",
+        2: "Protection essential. Reduce time in the sun between 10am and 4pm. Wear sunglassess, hat, and sunscreen.",
+        3: "Extra protection needed. Be careful! Unprotected skin can be damaged and can burn quickly.",
+        4: "Take all precautions. Unprotected skin can burn in minutes. Avoid being outside during midday hours."
+    }
+    return recommendations.get(risk_code, "Consult local health guidelines.")
+
+def train_risk_classifier(X_train, y_train, n_estimators=100, random_state=42):
+    """Train a generic Random Forest Classifier for Risk Prediction.
+    
+    Args:
+        X_train: Training features
+        y_train: Training targets (Risk Categories)
+        n_estimators: Number of trees
+        random_state: Random seed
+        
+    Returns:
+        Fitted model
+    """
+    model = Pipeline([
+        ('scaler', StandardScaler()),
+        ('classifier', RandomForestClassifier(n_estimators=n_estimators, random_state=random_state, n_jobs=-1))
+    ])
+    model.fit(X_train, y_train)
+    return model
+
+def evaluate_risk_model(model, X_test, y_test):
+    """Evaluate classifier and print classification report.
+    
+    Args:
+        model: Fitted model
+        X_test: Test features
+        y_test: True risk categories
+        
+    Returns:
+        dict: Classification report
+    """
+    y_pred = model.predict(X_test)
+    
+    print("\\nClassification Report:")
+    # Get unique labels from truth and pred to avoid errors if some classes are missing
+    unique_labels = sorted(list(set(y_test) | set(y_pred)))
+    target_names = [RISK_CATEGORIES.get(l, str(l)) for l in unique_labels]
+    
+    # Check if target_names matches unique_labels length
+    if len(target_names) == len(unique_labels):
+        print(classification_report(y_test, y_pred, target_names=target_names))
+    else:
+        print(classification_report(y_test, y_pred))
+    
+    print("\\nConfusion Matrix:")
+    print(confusion_matrix(y_test, y_pred))
+    
+    return classification_report(y_test, y_pred, output_dict=True)
