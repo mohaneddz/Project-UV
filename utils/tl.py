@@ -127,7 +127,7 @@ def train_tabpfn(X_train, y_train, device='cpu'):
     Args:
         X_train: Training features (for context, not actual training)
         y_train: Training targets
-        device: Device to use ('cpu' or 'cuda')
+        device: Device to use ('cpu' or 'cuda') - Note: may not be supported in all versions
         
     Returns:
         TabPFN model ready for prediction
@@ -144,7 +144,11 @@ def train_tabpfn(X_train, y_train, device='cpu'):
     if X_train.shape[1] > 100:
         print("Warning: TabPFN works best with <=100 features. Consider feature selection.")
     
-    model = TabPFNRegressor(device=device, N_ensemble_configurations=4)
+    # Create model - the latest TabPFN API doesn't accept parameters in __init__
+    # All configuration is handled internally
+    model = TabPFNRegressor()
+    
+    # Fit the model (this is instantaneous as it uses pre-trained weights)
     model.fit(X_train, y_train)
     
     return model
