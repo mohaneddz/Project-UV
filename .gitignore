@@ -6,6 +6,8 @@ DM_ENV/**/**
 
 .history/
 
+catboost_info/**
+
 # Large data folders (exceed GitHub's 100MB limit)
 data/environment_ocean/ICESDataPortalDownload_DomeBiota_04cb380f-3fd7-4f58-975b-ef4155b54096/
 data/environment_ocean/ICESDataPortalDownload_DomePhytobenthos_09eb3384-dab6-4014-9828-7b322e81622d/

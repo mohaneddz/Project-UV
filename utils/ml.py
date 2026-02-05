@@ -381,6 +381,7 @@ def train_and_evaluate_ml(df, df_full, test_ts, model_type='LINEAR_REGRESSION',
         X_train = X_train[fair_features]
         X_test = X_test[fair_features]
         print(f"Features: {len(fair_features)} (excluded {', '.join(exclude_features)})")
+        print(f"Final features used: {fair_features}")
     else:
         fair_features = feature_cols
     
