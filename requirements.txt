@@ -9,6 +9,10 @@ scikit-learn>=1.2.0
 # Time series models
 statsmodels>=0.14.0
 
+# Optional time series extensions
+prophet>=1.1.5
+arch>=6.3
+
 # Machine Learning (optional but recommended)
 xgboost>=1.7.0
 lightgbm>=3.3.0
