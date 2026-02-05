@@ -193,7 +193,7 @@ def plot_seasonal_ulcer_analysis(ulcer_monthly, uv_monthly=None):
     print(f"  Difference: {winter.mean() - summer.mean():.2f}%")
     
     if winter.mean() > summer.mean():
-        print("\n  HYPOTHESIS SUPPORTED: Higher ulcer rates in low-UV winter months")
+        print("\n  TREND: Lower ulcers in summer, but requires statistical testing.")
     else:
         print("\n  HYPOTHESIS NOT SUPPORTED by this data")
     print("="*60)
@@ -278,15 +278,16 @@ def plot_contaminant_photodegradation(contaminant_monthly, contaminant_yearly, p
     print("\n" + "="*60)
     print(f"STATISTICAL SUMMARY: UV Photodegradation of {param_name}")
     print("="*60)
-    print(f"  Summer (High UV) Mean Concentration: {summer.mean():.6f} µg/L (n={len(summer)})")
-    print(f"  Winter (Low UV) Mean Concentration:  {winter.mean():.6f} µg/L (n={len(winter)})")
-    print(f"  Reduction: {((winter.mean() - summer.mean()) / winter.mean() * 100):.1f}%")
+    print(f"  Summer (High UV) Mean Concentration: {summer.mean():.6f} ug/L (n={len(summer)})")
+    print(f"  Winter (Low UV) Mean Concentration:  {winter.mean():.6f} ug/L (n={len(winter)})")
+    
+    reduction_pct = ((winter.mean() - summer.mean()) / winter.mean() * 100) if winter.mean() > 0 else 0
+    print(f"  Difference: {reduction_pct:.1f}%")
     
     if summer.mean() < winter.mean():
-        print(f"\n  HYPOTHESIS SUPPORTED: Lower {param_name} in high-UV summer months")
-        print("     UV photodegradation appears to break down contaminants")
+        print(f"\n  TREND: Lower {param_name} in summer, but requires statistical testing to confirm.")
     else:
-        print(f"\n  HYPOTHESIS NOT SUPPORTED by this data")
+        print(f"\n  NO TREND: Summer levels not lower than winter.")
     print("="*60)
 
 
