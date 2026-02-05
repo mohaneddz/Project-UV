@@ -5,3 +5,10 @@ utils/__pycache__/**
 DM_ENV/**/**
 
 .history/
+
+# Large data folders (exceed GitHub's 100MB limit)
+data/environment_ocean/ICESDataPortalDownload_DomeBiota_04cb380f-3fd7-4f58-975b-ef4155b54096/
+data/environment_ocean/ICESDataPortalDownload_DomePhytobenthos_09eb3384-dab6-4014-9828-7b322e81622d/
+data/environment_ocean/ICESDataPortalDownload_DomeSeawater_5981f329-54d9-44cf-9c3d-8622c49a432d/
+data/environment_ocean/ICESDataPortalDownload_DomeZoobenthos_560886bf-cd20-463a-9185-9c67f06dc2a2/
+data/environment_ocean/ICESDataPortalDownload_Ocean_470f1fde-9e4e-41fb-9c4a-6c1855452023/
