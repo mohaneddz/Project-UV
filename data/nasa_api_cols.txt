@@ -27,7 +27,7 @@ ALLSKY_KT          Insolation Clearness Index (0.0 to 1.0; 1.0 = Clear, 0.0 = Op
 ALLSKY_SFC_LW_DWN  Thermal infrared energy (Longwave) emitted by atmosphere to surface
 
 --- UV & OZONE ---
-ALLSKY_SFC_UV_INDEX UV Index (0 to 11+); measure of risk of skin damage
+ALLSKY_SFC_UV_INDEX UV Index (0 to 11+); uv index
 ALLSKY_SFC_UVA      UVA Irradiance (315-400 nm); long-wave UV (aging) (W/m²)
 ALLSKY_SFC_UVB      UVB Irradiance (280-315 nm); short-wave UV (burning) (W/m²)
 TO3                 Total Column Ozone (Dobson Units - DU)
