@@ -1,0 +1,33 @@
+COLUMN             DESCRIPTION
+---------------------------------------------------------------------------------------
+Date               Observation date (YYYY-MM-DD)
+
+--- TEMPERATURE ---
+T2M                Average air temperature at 2 meters (°C)
+T2MDEW             Dew/Frost point temperature at 2 meters (°C)
+T2MWET             Wet bulb temperature at 2 meters (°C)
+TS                 Earth skin (surface) temperature (°C)
+T2M_RANGE          Diurnal temperature range (Max - Min) (°C)
+T2M_MAX            Maximum daily air temperature at 2 meters (°C)
+T2M_MIN            Minimum daily air temperature at 2 meters (°C)
+
+--- HUMIDITY & PRECIPITATION ---
+RH2M               Relative humidity at 2 meters (%)
+PRECTOTCORR        Total precipitation (rain/snow), corrected for gauge errors (mm/day)
+
+--- WIND (Speed & Direction) ---
+WS2M  / WD2M       Wind speed (m/s) and direction (degrees) at 2 meters
+WS10M / WD10M      Wind speed (m/s) and direction (degrees) at 10 meters
+WS50M / WD50M      Wind speed (m/s) and direction (degrees) at 50 meters
+
+--- SOLAR & THERMAL ---
+ALLSKY_SFC_SW_DWN  Total shortwave solar energy reaching surface (All Sky) (kW-hr/m²/day)
+CLRSKY_SFC_SW_DWN  Theoretical solar energy if sky were clear (no clouds) (kW-hr/m²/day)
+ALLSKY_KT          Insolation Clearness Index (0.0 to 1.0; 1.0 = Clear, 0.0 = Opaque)
+ALLSKY_SFC_LW_DWN  Thermal infrared energy (Longwave) emitted by atmosphere to surface
+
+--- UV & OZONE ---
+ALLSKY_SFC_UV_INDEX UV Index (0 to 11+); measure of risk of skin damage
+ALLSKY_SFC_UVA      UVA Irradiance (315-400 nm); long-wave UV (aging) (W/m²)
+ALLSKY_SFC_UVB      UVB Irradiance (280-315 nm); short-wave UV (burning) (W/m²)
+TO3                 Total Column Ozone (Dobson Units - DU)
