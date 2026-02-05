@@ -224,3 +224,236 @@ def merge_ecosystem_data(uv_df, ocean_df):
     else:
         print("Merge failed. Missing data in one of the dataframes.")
         return pd.DataFrame()
+
+
+def extract_biota_skin_ulcers(ocean_dir, bbox=None):
+    """
+    Extracts SKIN ULC (Skin Ulcers) data from DomeBiota dataset.
+    Skin ulcers in fish are indicators of bacterial infection levels in water.
+    
+    Hypothesis: High UV periods should correlate with lower ulcer frequency 
+    due to UV disinfection of water-borne pathogens.
+    
+    Args:
+        ocean_dir (Path): Path to the environment_ocean directory.
+        bbox (dict, optional): Bounding box for geographic filtering.
+        
+    Returns:
+        pd.DataFrame: Monthly/yearly aggregated ulcer data with columns:
+                     year, month, total_fish, ulcer_positive, ulcer_rate
+    """
+    print("Extracting Skin Ulcer (SKIN ULC) data from DomeBiota...")
+    
+    if not isinstance(ocean_dir, Path):
+        ocean_dir = Path(ocean_dir)
+    
+    # Find DomeBiota file
+    biota_file = None
+    for p in ocean_dir.rglob("*.csv"):
+        if "domebiota" in p.name.lower() or "biota" in p.parent.name.lower():
+            biota_file = p
+            break
+    
+    if not biota_file:
+        print("ERROR: DomeBiota CSV file not found.")
+        return pd.DataFrame()
+    
+    print(f"Reading: {biota_file.name}")
+    
+    # Read only essential columns to reduce memory
+    usecols = ['DATE', 'Latitude', 'Longitude', 'Species', 'PARAM', 'Value', 'NOINP', 'MYEAR']
+    
+    try:
+        df = pd.read_csv(biota_file, usecols=lambda c: c in usecols, low_memory=False)
+    except Exception as e:
+        print(f"Error reading file: {e}")
+        # Fallback: read all and select
+        df = pd.read_csv(biota_file, low_memory=False)
+        df = df[[c for c in usecols if c in df.columns]]
+    
+    print(f"Raw records loaded: {len(df):,}")
+    
+    # Filter for SKIN ULC parameter only
+    df = df[df['PARAM'] == 'SKIN ULC'].copy()
+    print(f"Records with SKIN ULC: {len(df):,}")
+    
+    if df.empty:
+        print("No SKIN ULC data found.")
+        return pd.DataFrame()
+    
+    # Parse dates
+    df['DATE'] = pd.to_datetime(df['DATE'], format='%d/%m/%Y', errors='coerce')
+    df = df.dropna(subset=['DATE'])
+    df['year'] = df['DATE'].dt.year
+    df['month'] = df['DATE'].dt.month
+    
+    # Apply geographic filter if provided
+    if bbox:
+        df = df[(df['Latitude'] >= bbox.get('lat_min', -90)) & 
+                (df['Latitude'] <= bbox.get('lat_max', 90)) &
+                (df['Longitude'] >= bbox.get('lon_min', -180)) & 
+                (df['Longitude'] <= bbox.get('lon_max', 180))]
+        print(f"Records after geographic filter: {len(df):,}")
+    
+    # Value interpretation for SKIN ULC:
+    # Value = 0 means no ulcer, Value > 0 means ulcer present
+    # NOINP = Number of individuals in pool
+    df['Value'] = pd.to_numeric(df['Value'], errors='coerce').fillna(0)
+    df['NOINP'] = pd.to_numeric(df['NOINP'], errors='coerce').fillna(1)
+    
+    # Aggregate by year and month
+    # Calculate: total fish examined, fish with ulcers (Value > 0), ulcer rate
+    agg_monthly = df.groupby(['year', 'month']).agg(
+        total_fish=('NOINP', 'sum'),
+        ulcer_positive_samples=('Value', lambda x: (x > 0).sum()),
+        total_samples=('Value', 'count'),
+        mean_ulcer_value=('Value', 'mean')
+    ).reset_index()
+    
+    # Calculate ulcer rate (percentage of samples with ulcers)
+    agg_monthly['ulcer_rate'] = (agg_monthly['ulcer_positive_samples'] / agg_monthly['total_samples']) * 100
+    
+    # Also create yearly aggregation
+    agg_yearly = df.groupby('year').agg(
+        total_fish=('NOINP', 'sum'),
+        ulcer_positive_samples=('Value', lambda x: (x > 0).sum()),
+        total_samples=('Value', 'count'),
+        mean_ulcer_value=('Value', 'mean')
+    ).reset_index()
+    agg_yearly['ulcer_rate'] = (agg_yearly['ulcer_positive_samples'] / agg_yearly['total_samples']) * 100
+    
+    print(f"\nSkin Ulcer Data Summary:")
+    print(f"  Years covered: {agg_yearly['year'].min()} - {agg_yearly['year'].max()}")
+    print(f"  Total samples: {agg_yearly['total_samples'].sum():,}")
+    print(f"  Mean ulcer rate: {agg_yearly['ulcer_rate'].mean():.2f}%")
+    
+    return agg_monthly, agg_yearly
+
+
+def extract_seawater_contaminants(ocean_dir, param='DDEPP', bbox=None):
+    """
+    Extracts chemical contaminant data (e.g., DDEPP) from DomeSeawater dataset.
+    
+    Hypothesis: UV radiation causes photodegradation of chemical contaminants.
+    High UV periods should show lower contaminant concentrations.
+    
+    Args:
+        ocean_dir (Path): Path to the environment_ocean directory.
+        param (str): Contaminant parameter code (default: 'DDEPP' - DDT derivative).
+        bbox (dict, optional): Bounding box for geographic filtering.
+        
+    Returns:
+        pd.DataFrame: Monthly/yearly aggregated contaminant data.
+    """
+    print(f"Extracting {param} contaminant data from DomeSeawater...")
+    
+    if not isinstance(ocean_dir, Path):
+        ocean_dir = Path(ocean_dir)
+    
+    # Find DomeSeawater file
+    seawater_file = None
+    for p in ocean_dir.rglob("*.csv"):
+        if "domeseawater" in p.name.lower() or "seawater" in p.parent.name.lower():
+            seawater_file = p
+            break
+    
+    if not seawater_file:
+        print("ERROR: DomeSeawater CSV file not found.")
+        return pd.DataFrame(), pd.DataFrame()
+    
+    print(f"Reading: {seawater_file.name}")
+    
+    # Read only essential columns
+    usecols = ['DATE', 'Latitude', 'Longitude', 'PARAM', 'Value', 'MUNIT', 'MYEAR', 'QFLAG']
+    
+    try:
+        df = pd.read_csv(seawater_file, usecols=lambda c: c in usecols, low_memory=False)
+    except Exception as e:
+        print(f"Error reading file: {e}")
+        df = pd.read_csv(seawater_file, low_memory=False)
+        df = df[[c for c in usecols if c in df.columns]]
+    
+    print(f"Raw records loaded: {len(df):,}")
+    
+    # Filter for specified parameter
+    df = df[df['PARAM'] == param].copy()
+    print(f"Records with {param}: {len(df):,}")
+    
+    if df.empty:
+        print(f"No {param} data found.")
+        return pd.DataFrame(), pd.DataFrame()
+    
+    # Parse dates
+    df['DATE'] = pd.to_datetime(df['DATE'], format='%d/%m/%Y', errors='coerce')
+    df = df.dropna(subset=['DATE'])
+    df['year'] = df['DATE'].dt.year
+    df['month'] = df['DATE'].dt.month
+    
+    # Apply geographic filter if provided
+    if bbox:
+        df = df[(df['Latitude'] >= bbox.get('lat_min', -90)) & 
+                (df['Latitude'] <= bbox.get('lat_max', 90)) &
+                (df['Longitude'] >= bbox.get('lon_min', -180)) & 
+                (df['Longitude'] <= bbox.get('lon_max', 180))]
+        print(f"Records after geographic filter: {len(df):,}")
+    
+    # Handle detection limits (QFLAG contains '<' for below detection limit)
+    # For below-detection values, we'll use the detection limit value divided by 2
+    df['Value'] = pd.to_numeric(df['Value'], errors='coerce')
+    df['below_detection'] = df['QFLAG'].str.contains('<', na=False) if 'QFLAG' in df.columns else False
+    
+    # Aggregate by year and month
+    agg_monthly = df.groupby(['year', 'month']).agg(
+        mean_concentration=('Value', 'mean'),
+        max_concentration=('Value', 'max'),
+        sample_count=('Value', 'count'),
+        below_detection_pct=('below_detection', lambda x: x.sum() / len(x) * 100)
+    ).reset_index()
+    
+    # Yearly aggregation
+    agg_yearly = df.groupby('year').agg(
+        mean_concentration=('Value', 'mean'),
+        max_concentration=('Value', 'max'),
+        sample_count=('Value', 'count'),
+        below_detection_pct=('below_detection', lambda x: x.sum() / len(x) * 100)
+    ).reset_index()
+    
+    print(f"\n{param} Contaminant Data Summary:")
+    print(f"  Years covered: {agg_yearly['year'].min()} - {agg_yearly['year'].max()}")
+    print(f"  Total samples: {agg_yearly['sample_count'].sum():,}")
+    print(f"  Mean concentration: {agg_yearly['mean_concentration'].mean():.6f}")
+    
+    return agg_monthly, agg_yearly
+
+
+def merge_uv_biological_data(uv_df, ulcer_yearly, contaminant_yearly):
+    """
+    Merges UV data with biological/chemical indicators for hypothesis testing.
+    
+    Args:
+        uv_df (pd.DataFrame): Yearly UV data with 'uv_mean' column.
+        ulcer_yearly (pd.DataFrame): Yearly skin ulcer data.
+        contaminant_yearly (pd.DataFrame): Yearly contaminant data.
+        
+    Returns:
+        pd.DataFrame: Merged dataset for correlation analysis.
+    """
+    merged = uv_df.copy()
+    
+    if not ulcer_yearly.empty:
+        merged = pd.merge(merged, ulcer_yearly[['year', 'ulcer_rate', 'total_samples']], 
+                         on='year', how='outer')
+        merged = merged.rename(columns={'total_samples': 'ulcer_samples'})
+    
+    if not contaminant_yearly.empty:
+        merged = pd.merge(merged, contaminant_yearly[['year', 'mean_concentration', 'sample_count']], 
+                         on='year', how='outer')
+        merged = merged.rename(columns={
+            'mean_concentration': 'ddepp_concentration',
+            'sample_count': 'contaminant_samples'
+        })
+    
+    merged = merged.sort_values('year').reset_index(drop=True)
+    print(f"Merged UV + Biological data: {len(merged)} years")
+    
+    return merged

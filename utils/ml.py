@@ -655,10 +655,10 @@ def get_protection_recommendation(risk_code):
     """
     recommendations = {
         0: "No protection required. You can safely stay outside.",
-        1: "Protection required. Seek shade during midday hours! Slip on a shirt, slop on sunscreen and slap on a hat.",
-        2: "Protection essential. Reduce time in the sun between 10am and 4pm. Wear sunglassess, hat, and sunscreen.",
-        3: "Extra protection needed. Be careful! Unprotected skin can be damaged and can burn quickly.",
-        4: "Take all precautions. Unprotected skin can burn in minutes. Avoid being outside during midday hours."
+        1: "Protection required. Avoid direct sun exposure between 10am-4pm, wear a hat, and use SPF 30+ sunscreen.",
+        2: "Protection essential. Reduce time in the sun between 10am and 4pm. Wear sunglasses, a hat, and apply SPF 30+ sunscreen.",
+        3: "Extra protection needed. Unprotected skin can be damaged and burn quickly. Stay in shade, use SPF 50+ sunscreen.",
+        4: "Take all precautions. Unprotected skin can burn in minutes. Avoid outdoor exposure between 10am-4pm. Use SPF 50+."
     }
     return recommendations.get(risk_code, "Consult local health guidelines.")
 

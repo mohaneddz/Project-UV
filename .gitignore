@@ -14,3 +14,7 @@ data/environment_ocean/ICESDataPortalDownload_DomePhytobenthos_09eb3384-dab6-401
 data/environment_ocean/ICESDataPortalDownload_DomeSeawater_5981f329-54d9-44cf-9c3d-8622c49a432d/
 data/environment_ocean/ICESDataPortalDownload_DomeZoobenthos_560886bf-cd20-463a-9185-9c67f06dc2a2/
 data/environment_ocean/ICESDataPortalDownload_Ocean_470f1fde-9e4e-41fb-9c4a-6c1855452023/
+uv_ocean_environment copy.ipynb
+eda copy.ipynb
+anaconda_projects
+.ipynb_checkpoints

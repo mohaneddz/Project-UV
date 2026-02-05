@@ -1,0 +1,48 @@
+{
+  "uv_salinity": {
+    "test": "UV-Salinity Correlation",
+    "r": -0.6491185668866982,
+    "p_value": 0.057332128750901795,
+    "n": 7,
+    "effect_size": "LARGE",
+    "decision": "REJECT",
+    "alpha": 0.1
+  },
+  "biological": {
+    "test": "UV Biological Disinfection (Ulcers)",
+    "mean_summer": 7.865751455822875,
+    "mean_winter": 3.7328218722980773,
+    "difference": -4.132929583524797,
+    "t_stat": 1.5322649278048956,
+    "p_value": 0.933814110650183,
+    "cohens_d": 0.3615511072891276,
+    "effect_size": "SMALL",
+    "n_summer": 45,
+    "n_winter": 70,
+    "decision": "FAIL_TO_REJECT",
+    "alpha": 0.1
+  },
+  "chemical": {
+    "test": "UV Photodegradation (DDEPP)",
+    "mean_summer": 0.23137070225816067,
+    "mean_winter": 0.25772305014864394,
+    "pct_reduction": 10.225064415186894,
+    "t_stat": -0.27216795221327017,
+    "p_value": 0.3931139971117214,
+    "cohens_d": -0.05641999305926218,
+    "effect_size": "NEGLIGIBLE",
+    "n_summer": 63,
+    "n_winter": 40,
+    "decision": "TREND_ONLY",
+    "alpha": 0.1
+  },
+  "uv_ulcer_corr": {
+    "test": "UV-Ulcer Correlation",
+    "r": 0.4163510851903561,
+    "p_value": 0.9386709860018456,
+    "n": 15,
+    "effect_size": "MEDIUM",
+    "decision": "FAIL_TO_REJECT",
+    "alpha": 0.1
+  }
+}
