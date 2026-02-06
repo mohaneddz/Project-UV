@@ -1,12 +1,36 @@
-__pycache__/**
-gen/**/**
-models/**/**
-utils/__pycache__/**
-DM_ENV/**/**
-
+# Root and general
+__pycache__/
+*.py[cod]
+*$py.class
 .history/
+.ipynb_checkpoints/
+anaconda_projects/
+catboost_info/
+gen/
+models/
+DM_ENV/
+.env
+.venv
+env/
+venv/
+ENV/
 
-catboost_info/**
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Frontend (Vite/React)
+web/frontend/node_modules/
+web/frontend/dist/
+web/frontend/dist-ssr/
+web/frontend/*.local
+web/frontend/.env
+web/frontend/.env.*
+web/frontend/.eslintcache
+
+# Backend
+web/backend/__pycache__/
+web/backend/.env
 
 # Large data folders (exceed GitHub's 100MB limit)
 data/environment_ocean/ICESDataPortalDownload_DomeBiota_04cb380f-3fd7-4f58-975b-ef4155b54096/
@@ -16,5 +40,3 @@ data/environment_ocean/ICESDataPortalDownload_DomeZoobenthos_560886bf-cd20-463a-
 data/environment_ocean/ICESDataPortalDownload_Ocean_470f1fde-9e4e-41fb-9c4a-6c1855452023/
 uv_ocean_environment copy.ipynb
 eda copy.ipynb
-anaconda_projects
-.ipynb_checkpoints

@@ -12,9 +12,9 @@ const Layout = ({ children }) => {
         <header className="border-b border-white/5 bg-[#0a0a0f]/70 backdrop-blur-xl sticky top-0 z-50">
           <div className="container mx-auto px-6 h-20 flex items-center justify-between">
             <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-white tracking-tight">
+              {/* <h1 className="text-xl font-semibold text-white tracking-tight">
                 LumiereGuard
-              </h1>
+              </h1> */}
             </div>
 
             <nav className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/5 backdrop-blur-sm">
@@ -50,9 +50,9 @@ const Layout = ({ children }) => {
           {children}
         </main>
 
-        <footer className="border-t border-white/5 py-8 text-center bg-[#0a0a0f]/50 backdrop-blur-sm">
+        {/* <footer className="border-t border-white/5 py-8 text-center bg-[#0a0a0f]/50 backdrop-blur-sm">
           <p className="text-gray-500 text-sm">© 2024 LumiereGuard AI. Engineered for resilience.</p>
-        </footer>
+        </footer> */}
       </div>
     </div>
   );
