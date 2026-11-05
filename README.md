@@ -1,3 +1,5 @@
+![Project UV cover](screenshots/cover.avif)
+
 <h1 style="font-family: Arial, sans-serif; font-size: 36px; color: #3C8D6B; border-bottom: 3px solid #3C8D6B; padding-bottom: 8px;">
   Project UV - UV Index Data Mining and Health Impact Study
 </h1>
